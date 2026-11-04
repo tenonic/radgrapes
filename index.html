@@ -55,6 +55,36 @@
     window.addEventListener("keydown", (e) => { keys[e.key.toLowerCase()] = true; });
     window.addEventListener("keyup",   (e) => { keys[e.key.toLowerCase()] = false; });
 
+    // Bullets the player has fired. Each one has a position (x, y) and a velocity (vx, vy).
+    const bullets = [];
+    const BULLET_SPEED = 8;
+    const BULLET_RADIUS = 4;
+
+    // Fire a bullet toward the mouse when the player clicks.
+    canvas.addEventListener("mousedown", (e) => {
+      // Mouse position relative to the canvas, not the whole page.
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Start from the center of the player.
+      const startX = player.x + player.size / 2;
+      const startY = player.y + player.size / 2;
+
+      // Direction to the mouse, scaled so every bullet moves at the same speed.
+      const dx = mouseX - startX;
+      const dy = mouseY - startY;
+      const distance = Math.hypot(dx, dy);
+      if (distance === 0) return;  // clicked exactly on the player's center
+
+      bullets.push({
+        x: startX,
+        y: startY,
+        vx: (dx / distance) * BULLET_SPEED,
+        vy: (dy / distance) * BULLET_SPEED
+      });
+    });
+
     // True if the player's square overlaps the castle's rectangle.
     function touchingCastle() {
       return player.x < castle.x + castle.width &&
@@ -80,6 +110,17 @@
       const oldY = player.y;
       player.y = Math.max(0, Math.min(player.y + dy, canvas.height - player.size));
       if (touchingCastle()) player.y = oldY;
+
+      // Move each bullet, and remove the ones that leave the screen.
+      // (Loop backwards so removing one doesn't skip the next.)
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx;
+        b.y += b.vy;
+        if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+          bullets.splice(i, 1);
+        }
+      }
     }
 
     // Draw everything.
@@ -90,6 +131,13 @@
 
       ctx.fillStyle = "#4af";   // player: blue
       ctx.fillRect(player.x, player.y, player.size, player.size);
+
+      ctx.fillStyle = "#ff4";   // bullets: yellow circles
+      for (const b of bullets) {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, BULLET_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     // The game loop: update, draw, repeat (about 60 times per second).
