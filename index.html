@@ -50,10 +50,45 @@
       speed: 4
     };
 
+    // Lives, game over, and screen shake.
+    const START_LIVES = 10;
+    let lives = START_LIVES;
+    let gameOver = false;
+    let gameOverTime = 0;
+    const SHAKE_MS = 300;
+    let shakeUntil = 0;
+
+    // Lose some lives. At 0 the game is over.
+    function loseLives(amount) {
+      lives = Math.max(0, lives - amount);
+      if (lives === 0) {
+        gameOver = true;
+        gameOverTime = performance.now();
+      }
+    }
+
+    // Put everything back to how it was at the start.
+    function restart() {
+      lives = START_LIVES;
+      score = 0;
+      bullets.length = 0;   // empties the array
+      aliens.length = 0;
+      player.x = castle.x - 60;
+      player.y = canvas.height / 2;
+      lastSpawnTime = performance.now();
+      shakeUntil = 0;
+      gameOver = false;
+    }
+
     // Remember which keys are held down right now.
     const keys = {};
-    window.addEventListener("keydown", (e) => { keys[e.key.toLowerCase()] = true; });
-    window.addEventListener("keyup",   (e) => { keys[e.key.toLowerCase()] = false; });
+    window.addEventListener("keydown", (e) => {
+      keys[e.key.toLowerCase()] = true;
+      // After Game Over, any key restarts. Wait 1 second first, so a key
+      // you were already holding doesn't restart it instantly.
+      if (gameOver && performance.now() - gameOverTime > 1000) restart();
+    });
+    window.addEventListener("keyup", (e) => { keys[e.key.toLowerCase()] = false; });
 
     // Bullets the player has fired. Each one has a position (x, y) and a velocity (vx, vy).
     const bullets = [];
@@ -62,6 +97,8 @@
 
     // Fire a bullet toward the mouse when the player clicks.
     canvas.addEventListener("mousedown", (e) => {
+      if (gameOver) return;  // no shooting after Game Over
+
       // Mouse position relative to the canvas, not the whole page.
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
@@ -160,15 +197,29 @@
         lastSpawnTime = now;
       }
 
-      // Move each alien. For now, an alien that reaches the castle just disappears
-      // (losing lives comes in the next step).
+      // Move each alien, then check what it touched.
       for (let i = aliens.length - 1; i >= 0; i--) {
         const a = aliens[i];
         a.x += a.vx;
         a.y += a.vy;
+
+        // The alien's bounding box (the square around its circle).
+        const left = a.x - ALIEN_RADIUS;
+        const top = a.y - ALIEN_RADIUS;
         const size = ALIEN_RADIUS * 2;
-        if (touchesCastle(a.x - ALIEN_RADIUS, a.y - ALIEN_RADIUS, size, size)) {
+
+        const hitPlayer = left < player.x + player.size &&
+                          left + size > player.x &&
+                          top < player.y + player.size &&
+                          top + size > player.y;
+
+        if (hitPlayer) {
           aliens.splice(i, 1);
+          loseLives(1);
+        } else if (touchesCastle(left, top, size, size)) {
+          aliens.splice(i, 1);
+          loseLives(2);
+          shakeUntil = now + SHAKE_MS;
         }
       }
 
@@ -191,6 +242,15 @@
     // Draw everything.
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Screen shake: while it's active, draw everything nudged by a small
+      // random amount. A new random nudge every frame makes it look shaky.
+      ctx.save();
+      if (performance.now() < shakeUntil) {
+        const shakeX = (Math.random() - 0.5) * 16;
+        const shakeY = (Math.random() - 0.5) * 16;
+        ctx.translate(shakeX, shakeY);
+      }
 
       ctx.drawImage(castleImg, castle.x, castle.y, castle.width, castle.height);
 
@@ -215,15 +275,32 @@
         ctx.fillRect(a.x + 2, a.y - 4, 4, 4);
       }
 
-      // Score in the top-left corner.
+      ctx.restore();  // stop shaking, so the text below stays still
+
+      // Score and lives in the top-left corner.
       ctx.fillStyle = "#fff";
       ctx.font = "20px monospace";
+      ctx.textAlign = "left";
       ctx.fillText("Score: " + score, 12, 28);
+      ctx.fillText("Lives: " + lives, 12, 54);
+
+      // Game Over screen: darken everything and show a message.
+      if (gameOver) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#f44";
+        ctx.font = "48px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
+        ctx.fillStyle = "#fff";
+        ctx.font = "20px monospace";
+        ctx.fillText("Press any key to restart", canvas.width / 2, canvas.height / 2 + 40);
+      }
     }
 
     // The game loop: update, draw, repeat (about 60 times per second).
     function loop() {
-      update();
+      if (!gameOver) update();  // freeze the game after Game Over, but keep drawing
       draw();
       requestAnimationFrame(loop);
     }
