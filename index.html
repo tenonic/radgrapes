@@ -85,12 +85,43 @@
       });
     });
 
-    // True if the player's square overlaps the castle's rectangle.
+    // Aliens. Each one has a position (x, y) and a velocity (vx, vy).
+    const aliens = [];
+    const ALIEN_SPEED = 1.5;
+    const ALIEN_RADIUS = 14;
+    const SPAWN_EVERY_MS = 1000;
+    let lastSpawnTime = 0;
+    let score = 0;
+
+    // Make a new alien on the left edge at a random height,
+    // aimed at a random spot on the castle's front wall.
+    function spawnAlien() {
+      const x = ALIEN_RADIUS;
+      const y = ALIEN_RADIUS + Math.random() * (canvas.height - ALIEN_RADIUS * 2);
+      const targetX = castle.x;
+      const targetY = castle.y + Math.random() * castle.height;
+      const dx = targetX - x;
+      const dy = targetY - y;
+      const distance = Math.hypot(dx, dy);
+      aliens.push({
+        x: x,
+        y: y,
+        vx: (dx / distance) * ALIEN_SPEED,
+        vy: (dy / distance) * ALIEN_SPEED
+      });
+    }
+
+    // True if a rectangle (x, y, w, h) overlaps the castle's rectangle.
+    function touchesCastle(x, y, w, h) {
+      return x < castle.x + castle.width &&
+             x + w > castle.x &&
+             y < castle.y + castle.height &&
+             y + h > castle.y;
+    }
+
+    // True if the player's square overlaps the castle.
     function touchingCastle() {
-      return player.x < castle.x + castle.width &&
-             player.x + player.size > castle.x &&
-             player.y < castle.y + castle.height &&
-             player.y + player.size > castle.y;
+      return touchesCastle(player.x, player.y, player.size, player.size);
     }
 
     // Move the player based on the keys held down.
@@ -121,6 +152,40 @@
           bullets.splice(i, 1);
         }
       }
+
+      // Spawn a new alien once enough time has passed.
+      const now = performance.now();
+      if (now - lastSpawnTime >= SPAWN_EVERY_MS) {
+        spawnAlien();
+        lastSpawnTime = now;
+      }
+
+      // Move each alien. For now, an alien that reaches the castle just disappears
+      // (losing lives comes in the next step).
+      for (let i = aliens.length - 1; i >= 0; i--) {
+        const a = aliens[i];
+        a.x += a.vx;
+        a.y += a.vy;
+        const size = ALIEN_RADIUS * 2;
+        if (touchesCastle(a.x - ALIEN_RADIUS, a.y - ALIEN_RADIUS, size, size)) {
+          aliens.splice(i, 1);
+        }
+      }
+
+      // Check every bullet against every alien. Two circles touch when the
+      // distance between their centers is less than their two radii added together.
+      for (let i = aliens.length - 1; i >= 0; i--) {
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          const a = aliens[i];
+          const b = bullets[j];
+          if (Math.hypot(a.x - b.x, a.y - b.y) < ALIEN_RADIUS + BULLET_RADIUS) {
+            aliens.splice(i, 1);
+            bullets.splice(j, 1);
+            score += 1;
+            break;  // this alien is gone, so stop checking it
+          }
+        }
+      }
     }
 
     // Draw everything.
@@ -138,6 +203,22 @@
         ctx.arc(b.x, b.y, BULLET_RADIUS, 0, Math.PI * 2);
         ctx.fill();
       }
+
+      // Aliens: green circles with two dark eyes.
+      for (const a of aliens) {
+        ctx.fillStyle = "#4d4";
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, ALIEN_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#111";
+        ctx.fillRect(a.x - 6, a.y - 4, 4, 4);
+        ctx.fillRect(a.x + 2, a.y - 4, 4, 4);
+      }
+
+      // Score in the top-left corner.
+      ctx.fillStyle = "#fff";
+      ctx.font = "20px monospace";
+      ctx.fillText("Score: " + score, 12, 28);
     }
 
     // The game loop: update, draw, repeat (about 60 times per second).
