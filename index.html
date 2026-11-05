@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Castle Defense</title>
+  <!-- A free pixel-style font from Google Fonts. -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    canvas {
+      background: #112;
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="800" height="500"></canvas>
+
+  <script>
+    // Get the canvas and its "context", which is what we draw with.
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    // Draw images with sharp, blocky pixels instead of blurring them.
+    ctx.imageSmoothingEnabled = false;
+
+    // ---------- 8-bit graphics ----------
+
+    // The pixel font (falls back to monospace if it can't load).
+    const FONT = "'Press Start 2P', monospace";
+
+    // Sprites are small pictures written as rows of letters. Each letter is one
+    // "big pixel" whose color comes from the sprite's color list. "." is see-through.
+    // The player faces left (toward the aliens), with a jetpack (J) on their back.
+    const PLAYER_SPRITE = {
+      rows: [
+        ".BBB....",
+        "BWWBB...",
+        "BWWBBJJ.",
+        ".BBBBJJ.",
+        "LBBBBJJ.",
+        ".BBBBJJ.",
+        ".B.B.DD.",
+        ".B.B...."
+      ],
+      colors: { B: "#4af", W: "#bff", L: "#27c", J: "#aaa", D: "#666" }
+    };
+
+    // Two jetpack flame pictures. Switching between them looks like flickering fire.
+    const FLAME_FRAMES = [
+      { rows: ["YY", "OO", ".O"], colors: { Y: "#ff4", O: "#f80" } },
+      { rows: ["YY", "O."],       colors: { Y: "#ff4", O: "#f80" } }
+    ];
+
+    const ALIEN_SPRITE = {
+      rows: [
+        "...GGG...",
+        ".GGGGGGG.",
+        "GGGWWWGGG",
+        "GGGWKWGGG",
+        "GGGWWWGGG",
+        ".GGGGGGG.",
+        ".G.G.G.G.",
+        "G.G...G.G"
+      ],
+      colors: { G: "#4d4", W: "#fff", K: "#111" }
+    };
+
+    const BOSS_SPRITE = {
+      rows: [
+        "........CCCCCCCC........",
+        "......CCWWCCCCCCCC......",
+        ".....CCWWCCCCCCCCCC.....",
+        ".....CCCCCCCCCCCCCC.....",
+        "...GGGGGGGGGGGGGGGGGG...",
+        ".GGGGGGGGGGGGGGGGGGGGGG.",
+        "GGRRGGGGYYGGGGYYGGGGRRGG",
+        ".GGGGGGGGGGGGGGGGGGGGGG.",
+        "...DDDDDDDDDDDDDDDDDD...",
+        ".....DD....DD....DD....."
+      ],
+      colors: { C: "#8ef", W: "#fff", G: "#999", R: "#f44", Y: "#ff4", D: "#666" }
+    };
+
+    // Draw a sprite with its top-left corner at (x, y). Each letter becomes a
+    // square "scale" pixels wide. Positions are rounded so blocks stay crisp.
+    function drawSprite(sprite, x, y, scale) {
+      x = Math.round(x);
+      y = Math.round(y);
+      for (let r = 0; r < sprite.rows.length; r++) {
+        for (let c = 0; c < sprite.rows[r].length; c++) {
+          const letter = sprite.rows[r][c];
+          if (letter === ".") continue;
+          ctx.fillStyle = sprite.colors[letter];
+          ctx.fillRect(x + c * scale, y + r * scale, scale, scale);
+        }
+      }
+    }
+
+    // A starry background: random dots, made once at the start.
+    const stars = [];
+    for (let i = 0; i < 70; i++) {
+      stars.push({
+        x: Math.floor(Math.random() * canvas.width),
+        y: Math.floor(Math.random() * canvas.height),
+        size: Math.random() < 0.2 ? 3 : 2,
+        color: Math.random() < 0.5 ? "#556" : "#99a"
+      });
+    }
+
+    // ---------- 8-bit music ----------
+    // An original chiptune song, made with the browser's Web Audio API (no music file).
+    //
+    // How the song is organized:
+    // - A "section" is 4 bars (64 steps; each step is a 16th note). It has 4 chords,
+    //   one per bar, and (optionally) a melody.
+    // - The ARRANGEMENT lists which section plays next and which instruments join in.
+    //   Reusing sections with different instruments makes a long song without
+    //   writing out every note by hand.
+
+    const _ = null;  // a rest (no new note)
+
+    // Chords: [bass note as a MIDI number, "m" for minor or "M" for major].
+    const Am = [45, "m"], C = [48, "M"], Dm = [38, "m"], E = [40, "M"],
+          Em = [40, "m"], F = [41, "M"], G = [43, "M"];
+
+    // Melody notes are MIDI numbers (69 = A4, 72 = C5, 76 = E5, 81 = A5, ...).
+    const SECTIONS = {
+      // The main tune.
+      MAIN: {
+        chords: [Am, F, G, E],
+        melody: [
+          76, _, 76, 74,  72, _, 69, _,  72, 74, 76, _,  79, _, 76, _,
+          77, _, 77, 76,  74, _, 72, _,  69, 72, 77, _,  76, _, 74, _,
+          74, _, 74, 72,  71, _, 67, _,  71, 74, 79, _,  77, _, 74, _,
+          76, _, 71, _,   68, _, 71, _,  76, _, 80, _,   83, _, _, _
+        ]
+      },
+      // Climbs higher, then runs back down.
+      CLIMB: {
+        chords: [Dm, Am, F, E],
+        melody: [
+          81, _, 79, 77,  76, _, 74, _,  77, _, 81, _,   86, _, 84, 81,
+          84, _, _, 81,   76, _, _, 81,  84, _, 88, _,   84, _, 81, _,
+          77, _, 81, _,   84, _, 81, _,  77, _, 76, _,   77, 79, 81, _,
+          80, _, _, _,    76, _, 80, _,  83, _, 80, _,   76, 74, 72, 71
+        ]
+      },
+      // A calmer, brighter tune for the middle of the song.
+      BRIDGE: {
+        chords: [F, G, Em, Am],
+        melody: [
+          72, _, _, 74,   77, _, _, _,   76, _, 74, _,   72, _, 74, _,
+          74, _, _, 76,   79, _, _, _,   81, _, 79, _,   76, _, 74, _,
+          71, _, _, 74,   76, _, _, _,   79, _, 76, _,   74, _, 71, _,
+          72, _, 71, _,   69, _, _, _,   _, _, _, _,     69, 71, 72, 74
+        ]
+      },
+      // No melody: used for the intro and the quiet breakdown.
+      QUIET: {
+        chords: [Am, F, C, G],
+        melody: null
+      },
+      // The big, triumphant climax.
+      HERO: {
+        chords: [C, G, Am, E],
+        melody: [
+          79, _, 79, _,   84, _, 79, _,  76, _, 79, _,   84, _, 86, _,
+          83, _, 79, _,   74, _, 79, _,  83, _, 86, _,   83, _, 79, _,
+          81, _, 76, _,   72, _, 76, _,  81, _, 84, _,   88, _, 86, 84,
+          83, _, _, _,    80, _, _, _,   76, _, 80, _,   83, _, _, _
+        ]
+      }
+    };
+
+    // The order the sections play in, and which instruments play in each.
+    // Instruments: lead, double, arp, bass, kick, snare, hat.
+    const ALL = "lead double arp bass kick snare hat";
+    const ARRANGEMENT = [
+      { section: "QUIET",  play: "arp bass" },                  // intro
+      { section: "QUIET",  play: "arp bass kick hat" },         // drums come in
+      { section: "MAIN",   play: "lead bass kick snare hat" },
+      { section: "CLIMB",  play: "lead arp bass kick snare hat" },
+      { section: "MAIN",   play: ALL },
+      { section: "BRIDGE", play: "lead arp bass hat" },          // calmer
+      { section: "BRIDGE", play: ALL },
+      { section: "HERO",   play: "lead arp bass kick snare hat" },
+      { section: "HERO",   play: ALL },
+      { section: "QUIET",  play: "arp hat" },                   // breakdown
+      { section: "CLIMB",  play: "lead bass kick snare hat" },  // build back up
+      { section: "MAIN",   play: ALL },
+      { section: "HERO",   play: ALL },
+      { section: "CLIMB",  play: ALL }                          // runs back into the intro
+    ];
+
+    const SECTION_STEPS = 64;
+    const SONG_STEPS = ARRANGEMENT.length * SECTION_STEPS;   // 14 sections = 896 steps
+
+    const MUSIC_BPM = 150;
+    const BOSS_MUSIC_BPM = 180;  // faster during the boss fight
+
+    let audioCtx = null;   // created on the first click or key press
+    let musicVolume = null;
+    let musicOn = true;
+    let musicStep = 0;
+    let nextStepTime = 0;
+
+    // Turn a MIDI note number into a frequency in Hz.
+    function noteToHz(n) {
+      return 440 * Math.pow(2, (n - 69) / 12);
+    }
+
+    // Seconds per 16th note (faster while the boss is alive).
+    function stepSeconds() {
+      const bossFight = boss && boss.explodeTime === 0;
+      return 60 / (bossFight ? BOSS_MUSIC_BPM : MUSIC_BPM) / 4;
+    }
+
+    // Play one note: an oscillator (the sound wave) through a volume envelope
+    // that starts loud and fades, which makes it sound plucky instead of flat.
+    function playNote(type, hz, start, length, volume) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = hz;
+      gain.gain.setValueAtTime(volume, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + length);
+      osc.connect(gain);
+      gain.connect(musicVolume);
+      osc.start(start);
+      osc.stop(start + length);
+    }
+
+    // Noise (random numbers turned into sound) is used for the drums.
+    // It's made once and reused.
+    let noiseBuffer = null;
+    function getNoise() {
+      if (!noiseBuffer) {
+        noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.2, audioCtx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      }
+      return noiseBuffer;
+    }
+
+    // Play a short burst of noise. The highpass filter removes low sounds:
+    // a higher cutoff gives a thinner, hissier sound.
+    function playNoise(start, length, volume, highpassHz) {
+      const src = audioCtx.createBufferSource();
+      const filter = audioCtx.createBiquadFilter();
+      const gain = audioCtx.createGain();
+      src.buffer = getNoise();
+      filter.type = "highpass";
+      filter.frequency.value = highpassHz;
+      gain.gain.setValueAtTime(volume, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + length);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(musicVolume);
+      src.start(start);
+      src.stop(start + length);
+    }
+
+    // Hi-hat: a tiny, very hissy burst.
+    function playHat(start) {
+      playNoise(start, 0.05, 0.1, 7000);
+    }
+
+    // Snare: a longer burst of noise, plus a short low tone for some "body".
+    function playSnare(start) {
+      playNoise(start, 0.15, 0.25, 1500);
+      playNote("triangle", 180, start, 0.08, 0.2);
+    }
+
+    // Kick: a low tone that drops in pitch very quickly, which sounds like a thump.
+    function playKick(start) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(150, start);
+      osc.frequency.exponentialRampToValueAtTime(40, start + 0.12);
+      gain.gain.setValueAtTime(0.6, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.15);
+      osc.connect(gain);
+      gain.connect(musicVolume);
+      osc.start(start);
+      osc.stop(start + 0.15);
+    }
+
+    // Play everything that happens on one step of the song.
+    function playStep(step, time) {
+      const len = stepSeconds();
+      const part = ARRANGEMENT[Math.floor(step / SECTION_STEPS)];
+      const section = SECTIONS[part.section];
+      const local = step % SECTION_STEPS;                  // step inside the section, 0-63
+      const beat = local % 16;                             // step inside the bar, 0-15
+      const chord = section.chords[Math.floor(local / 16)];
+      const root = chord[0];
+      const has = (name) => part.play.includes(name);      // is this instrument playing?
+
+      // Lead melody (square wave), held longer if the next step is a rest.
+      // "double" plays the same melody an octave lower on a sawtooth wave.
+      if (section.melody) {
+        const note = section.melody[local];
+        if (note !== null) {
+          const next = local + 1 < SECTION_STEPS ? section.melody[local + 1] : 0;
+          const hold = next === null ? 2 : 1;
+          if (has("lead"))   playNote("square",   noteToHz(note),      time, len * hold * 0.95, 0.10);
+          if (has("double")) playNote("sawtooth", noteToHz(note - 12), time, len * hold * 0.95, 0.04);
+        }
+      }
+
+      // Arpeggio: the chord's notes one after another, fast and high.
+      // Minor chords use 0, 3, 7, 12 steps above the root; major chords use 0, 4, 7, 12.
+      if (has("arp")) {
+        const shape = chord[1] === "m" ? [0, 3, 7, 12] : [0, 4, 7, 12];
+        playNote("square", noteToHz(root + 36 + shape[local % 4]), time, len * 0.9, 0.035);
+      }
+
+      // Bass on every other step, switching between low and high octave.
+      if (has("bass") && local % 2 === 0) {
+        const octave = (local % 4 === 0) ? 0 : 12;
+        playNote("triangle", noteToHz(root + octave), time, len * 1.8, 0.25);
+      }
+
+      // Drums: kick on beats 1 and 3, snare on beats 2 and 4, hi-hat on the off-beats.
+      if (has("kick")  && (beat === 0 || beat === 8))  playKick(time);
+      if (has("snare") && (beat === 4 || beat === 12)) playSnare(time);
+      if (has("hat")   && beat % 4 === 2)              playHat(time);
+    }
+
+    // The scheduler runs every 25 ms and queues up any notes due in the next
+    // 0.1 seconds. Scheduling slightly ahead keeps the rhythm steady even if
+    // the game has a slow frame.
+    function scheduleMusic() {
+      // If the tab was hidden for a while, skip ahead instead of playing a pile of notes.
+      if (nextStepTime < audioCtx.currentTime - 0.2) {
+        nextStepTime = audioCtx.currentTime + 0.05;
+      }
+      while (nextStepTime < audioCtx.currentTime + 0.1) {
+        playStep(musicStep, nextStepTime);
+        nextStepTime += stepSeconds();
+        musicStep = (musicStep + 1) % SONG_STEPS;
+      }
+    }
+
+    // Browsers only allow sound after the player clicks or presses a key,
+    // so this is called from those events. It only sets things up once.
+    function startMusic() {
+      if (audioCtx) return;
+      audioCtx = new AudioContext();
+      musicVolume = audioCtx.createGain();
+      musicVolume.gain.value = musicOn ? 0.5 : 0;
+      musicVolume.connect(audioCtx.destination);
+      nextStepTime = audioCtx.currentTime + 0.05;
+      setInterval(scheduleMusic, 25);
+    }
+
+    // M turns the music on and off.
+    function toggleMusic() {
+      musicOn = !musicOn;
+      if (musicVolume) musicVolume.gain.value = musicOn ? 0.5 : 0;
+    }
+
+    // Load the castle picture.
+    const castleImg = new Image();
+    castleImg.src = "castle.png";
+
+    // The castle: on the right edge, sitting on top of the hill.
+    // Height keeps the picture's shape (444 wide x 596 tall).
+    const HILL_HEIGHT = 90;
+    const castle = {
+      width: 150,
+      height: Math.round(150 * 596 / 444),
+      x: canvas.width - 150,
+      y: 0
+    };
+    castle.y = canvas.height - HILL_HEIGHT - castle.height;
+
+    // A small Mars hill under the castle, built as 3 stepped tiers (like stairs).
+    // Each tier is a rectangle, so it can be solid using the same overlap check
+    // as the castle. Listed top tier first; each lower tier sticks out further left.
+    const TIER_HEIGHT = HILL_HEIGHT / 3;
+    const hill = [];
+    for (let k = 0; k < 3; k++) {
+      const x = castle.x - 30 - k * 40;
+      hill.push({
+        x: x,
+        y: canvas.height - HILL_HEIGHT + k * TIER_HEIGHT,
+        w: canvas.width - x,
+        h: TIER_HEIGHT
+      });
+    }
+
+    // Dark specks and rocks on the hill, placed randomly once at the start.
+    const hillSpecks = [];
+    for (let i = 0; i < 30; i++) {
+      const tier = hill[Math.floor(Math.random() * hill.length)];
+      const size = Math.random() < 0.3 ? 6 : 3;
+      hillSpecks.push({
+        x: Math.floor(tier.x + 4 + Math.random() * (tier.w - 10)),
+        y: Math.floor(tier.y + 8 + Math.random() * (tier.h - 14)),
+        size: size
+      });
+    }
+
+    // The player: a small square that starts just left of the castle.
+    const player = {
+      size: 24,
+      x: castle.x - 60,
+      y: canvas.height / 2,
+      speed: 4
+    };
+
+    // Lives, game over, and screen shake.
+    const START_LIVES = 30;
+    let lives = START_LIVES;
+    let gameOver = false;   // true once the game has ended (win or lose)
+    let won = false;        // true if it ended because the boss was beaten
+    let gameOverTime = 0;
+    const SHAKE_MS = 300;
+    let shakeUntil = 0;
+
+    // Lose some lives. At 0 the game is over.
+    function loseLives(amount) {
+      lives = Math.max(0, lives - amount);
+      if (lives === 0) {
+        gameOver = true;
+        gameOverTime = performance.now();
+      }
+    }
+
+    // Put everything back to how it was at the start.
+    function restart() {
+      lives = START_LIVES;
+      score = 0;
+      bullets.length = 0;   // empties the array
+      aliens.length = 0;
+      player.x = castle.x - 60;
+      player.y = canvas.height / 2;
+      lastSpawnTime = performance.now();
+      shakeUntil = 0;
+      boss = null;
+      bossSpawned = false;
+      lasers.length = 0;
+      gameOver = false;
+      won = false;
+    }
+
+    // Remember which keys are held down right now.
+    const keys = {};
+    window.addEventListener("keydown", (e) => {
+      keys[e.key.toLowerCase()] = true;
+      startMusic();
+      if (e.key.toLowerCase() === "m" && !e.repeat) toggleMusic();
+      // After the game ends, any key restarts. Wait 1 second first, so a key
+      // you were already holding doesn't restart it instantly.
+      if (gameOver && performance.now() - gameOverTime > 1000) restart();
+    });
+    window.addEventListener("keyup", (e) => { keys[e.key.toLowerCase()] = false; });
+
+    // Bullets the player has fired. Each one has a position (x, y) and a velocity (vx, vy).
+    const bullets = [];
+    const BULLET_SPEED = 8;
+    const BULLET_RADIUS = 4;
+
+    // Fire a bullet toward the mouse when the player clicks.
+    canvas.addEventListener("mousedown", (e) => {
+      startMusic();
+      if (gameOver) return;  // no shooting after Game Over
+
+      // Mouse position relative to the canvas, not the whole page.
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Start from the center of the player.
+      const startX = player.x + player.size / 2;
+      const startY = player.y + player.size / 2;
+
+      // Direction to the mouse, scaled so every bullet moves at the same speed.
+      const dx = mouseX - startX;
+      const dy = mouseY - startY;
+      const distance = Math.hypot(dx, dy);
+      if (distance === 0) return;  // clicked exactly on the player's center
+
+      bullets.push({
+        x: startX,
+        y: startY,
+        vx: (dx / distance) * BULLET_SPEED,
+        vy: (dy / distance) * BULLET_SPEED
+      });
+    });
+
+    // Aliens. Each one has a position (x, y) and a velocity (vx, vy).
+    const aliens = [];
+    const ALIEN_SPEED = 1.5;
+    const ALIEN_RADIUS = 14;
+    const SPAWN_EVERY_MS = 1000;
+    let lastSpawnTime = 0;
+    let score = 0;
+
+    // Make a new alien on the left edge at a random height,
+    // aimed at a random spot on the castle's front wall.
+    function spawnAlien() {
+      const x = ALIEN_RADIUS;
+      const y = ALIEN_RADIUS + Math.random() * (canvas.height - ALIEN_RADIUS * 2);
+      const targetX = castle.x;
+      const targetY = castle.y + Math.random() * (castle.height - 25);  // stay above the hill
+      const dx = targetX - x;
+      const dy = targetY - y;
+      const distance = Math.hypot(dx, dy);
+      aliens.push({
+        x: x,
+        y: y,
+        vx: (dx / distance) * ALIEN_SPEED,
+        vy: (dy / distance) * ALIEN_SPEED
+      });
+    }
+
+    // The boss. It's null (nothing) until 20 aliens have been killed.
+    const BOSS_AT_SCORE = 30;
+    const BOSS_LIVES = 30;
+    const BOSS_EXPLODE_MS = 1500;
+    let boss = null;
+    let bossSpawned = false;
+
+    // Lasers the boss fires. Each one has a position (x, y) for its front tip
+    // and a velocity (vx, vy).
+    const lasers = [];
+    const LASER_EVERY_MS = 1500;
+    const LASER_SPEED = 4;
+    const LASER_LENGTH = 30;
+    const LASER_THICKNESS = 10;
+    const LASER_HIT_RADIUS = 10;
+
+    // Bring in the boss: it starts just off the left edge and slides in.
+    function spawnBoss() {
+      // The boss's size comes from its sprite: 24x10 letters, 5 pixels each.
+      boss = {
+        width: BOSS_SPRITE.rows[0].length * 5,
+        height: BOSS_SPRITE.rows.length * 5,
+        x: -120,
+        y: canvas.height / 2 - 25,
+        vy: 2,                  // up/down speed
+        lives: BOSS_LIVES,
+        entering: true,         // still sliding in from the left
+        lastLaserTime: 0,
+        explodeTime: 0,         // when it started exploding (0 = not exploding)
+        particles: []           // pixel bits that fly out when it explodes
+      };
+      bossSpawned = true;
+    }
+
+    // Fire a laser from the boss's front, aimed at a random spot on the castle.
+    function fireLaser() {
+      const x = boss.x + boss.width;
+      const y = boss.y + boss.height / 2;
+      const targetX = castle.x;
+      const targetY = castle.y + Math.random() * (castle.height - 25);  // stay above the hill
+      const dx = targetX - x;
+      const dy = targetY - y;
+      const distance = Math.hypot(dx, dy);
+      lasers.push({
+        x: x,
+        y: y,
+        vx: (dx / distance) * LASER_SPEED,
+        vy: (dy / distance) * LASER_SPEED
+      });
+    }
+
+    // True if two rectangles overlap: each one starts before the other one ends,
+    // both left-right and up-down.
+    function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+      return ax < bx + bw && ax + aw > bx &&
+             ay < by + bh && ay + ah > by;
+    }
+
+    // True if a rectangle (x, y, w, h) overlaps the castle's rectangle.
+    function touchesCastle(x, y, w, h) {
+      return rectsOverlap(x, y, w, h, castle.x, castle.y, castle.width, castle.height);
+    }
+
+    // True if the player's square overlaps the castle or any tier of the hill.
+    function touchingSolid() {
+      const px = player.x, py = player.y, s = player.size;
+      if (touchesCastle(px, py, s, s)) return true;
+      for (const t of hill) {
+        if (rectsOverlap(px, py, s, s, t.x, t.y, t.w, t.h)) return true;
+      }
+      return false;
+    }
+
+    // Move the player based on the keys held down.
+    function update() {
+      let dx = 0, dy = 0;
+      if (keys["arrowup"]    || keys["w"]) dy -= player.speed;
+      if (keys["arrowdown"]  || keys["s"]) dy += player.speed;
+      if (keys["arrowleft"]  || keys["a"]) dx -= player.speed;
+      if (keys["arrowright"] || keys["d"]) dx += player.speed;
+
+      // Move left/right, staying on screen. If that bumps into the castle or hill, undo it.
+      const oldX = player.x;
+      player.x = Math.max(0, Math.min(player.x + dx, canvas.width - player.size));
+      if (touchingSolid()) player.x = oldX;
+
+      // Then move up/down the same way.
+      const oldY = player.y;
+      player.y = Math.max(0, Math.min(player.y + dy, canvas.height - player.size));
+      if (touchingSolid()) player.y = oldY;
+
+      // Move each bullet, and remove the ones that leave the screen.
+      // (Loop backwards so removing one doesn't skip the next.)
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx;
+        b.y += b.vy;
+        if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+          bullets.splice(i, 1);
+        }
+      }
+
+      // After enough kills, bring in the boss (only once).
+      const now = performance.now();
+      if (!bossSpawned && score >= BOSS_AT_SCORE) {
+        spawnBoss();
+      }
+
+      // Spawn a new alien once enough time has passed (but not once the boss is here).
+      if (!bossSpawned && now - lastSpawnTime >= SPAWN_EVERY_MS) {
+        spawnAlien();
+        lastSpawnTime = now;
+      }
+
+      // Move each alien, then check what it touched.
+      for (let i = aliens.length - 1; i >= 0; i--) {
+        const a = aliens[i];
+        a.x += a.vx;
+        a.y += a.vy;
+
+        // The alien's bounding box (the square around its circle).
+        const left = a.x - ALIEN_RADIUS;
+        const top = a.y - ALIEN_RADIUS;
+        const size = ALIEN_RADIUS * 2;
+
+        const hitPlayer = left < player.x + player.size &&
+                          left + size > player.x &&
+                          top < player.y + player.size &&
+                          top + size > player.y;
+
+        if (hitPlayer) {
+          aliens.splice(i, 1);
+          loseLives(1);
+        } else if (touchesCastle(left, top, size, size)) {
+          aliens.splice(i, 1);
+          loseLives(2);
+          shakeUntil = now + SHAKE_MS;
+        }
+      }
+
+      // Check every bullet against every alien. Two circles touch when the
+      // distance between their centers is less than their two radii added together.
+      for (let i = aliens.length - 1; i >= 0; i--) {
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          const a = aliens[i];
+          const b = bullets[j];
+          if (Math.hypot(a.x - b.x, a.y - b.y) < ALIEN_RADIUS + BULLET_RADIUS) {
+            aliens.splice(i, 1);
+            bullets.splice(j, 1);
+            score += 1;
+            break;  // this alien is gone, so stop checking it
+          }
+        }
+      }
+
+      if (boss) updateBoss(now);
+    }
+
+    // Everything the boss and its lasers do each frame.
+    function updateBoss(now) {
+      // Exploding: wait, then win.
+      if (boss.explodeTime > 0) {
+        if (now - boss.explodeTime >= BOSS_EXPLODE_MS) {
+          gameOver = true;
+          won = true;
+          gameOverTime = now;
+        }
+        return;
+      }
+
+      if (boss.entering) {
+        // Slide in from the left until fully on screen.
+        boss.x += 2;
+        if (boss.x >= 20) {
+          boss.x = 20;
+          boss.entering = false;
+          boss.lastLaserTime = now;
+        }
+      } else {
+        // Slide up and down, turning around at the top and bottom edges.
+        boss.y += boss.vy;
+        if (boss.y < 0 || boss.y + boss.height > canvas.height) {
+          boss.vy = -boss.vy;
+          boss.y = Math.max(0, Math.min(boss.y, canvas.height - boss.height));
+        }
+
+        // Fire a laser every LASER_EVERY_MS.
+        if (now - boss.lastLaserTime >= LASER_EVERY_MS) {
+          fireLaser();
+          boss.lastLaserTime = now;
+        }
+      }
+
+      // Bullets that hit the boss take away one of its lives.
+      for (let j = bullets.length - 1; j >= 0; j--) {
+        const b = bullets[j];
+        if (b.x > boss.x && b.x < boss.x + boss.width &&
+            b.y > boss.y && b.y < boss.y + boss.height) {
+          bullets.splice(j, 1);
+          boss.lives -= 1;
+          if (boss.lives <= 0) {
+            boss.lives = 0;
+            boss.explodeTime = now;
+            // Make pixel bits that fly out in random directions.
+            const colors = ["#f80", "#ff4", "#f33", "#fff"];
+            for (let k = 0; k < 40; k++) {
+              const angle = Math.random() * Math.PI * 2;
+              const speed = 1 + Math.random() * 3;
+              boss.particles.push({
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                color: colors[k % colors.length]
+              });
+            }
+            shakeUntil = now + 500;
+            lasers.length = 0;  // remove all lasers when the boss dies
+            return;
+          }
+        }
+      }
+
+      // Move each laser, then check what it hit.
+      for (let i = lasers.length - 1; i >= 0; i--) {
+        const l = lasers[i];
+        l.x += l.vx;
+        l.y += l.vy;
+
+        // Off screen: remove it.
+        if (l.x < 0 || l.x > canvas.width || l.y < 0 || l.y > canvas.height) {
+          lasers.splice(i, 1);
+          continue;
+        }
+
+        // A bullet near the laser's tip or middle destroys both.
+        const midX = l.x - (l.vx / LASER_SPEED) * (LASER_LENGTH / 2);
+        const midY = l.y - (l.vy / LASER_SPEED) * (LASER_LENGTH / 2);
+        let blocked = false;
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          const b = bullets[j];
+          if (Math.hypot(b.x - l.x, b.y - l.y) < LASER_HIT_RADIUS ||
+              Math.hypot(b.x - midX, b.y - midY) < LASER_HIT_RADIUS) {
+            bullets.splice(j, 1);
+            blocked = true;
+            break;
+          }
+        }
+        if (blocked) {
+          lasers.splice(i, 1);
+          continue;
+        }
+
+        // The laser's tip touching the player or the castle.
+        const tip = LASER_THICKNESS / 2;  // treat the tip as a square as thick as the laser
+        const hitPlayer = l.x + tip > player.x && l.x - tip < player.x + player.size &&
+                          l.y + tip > player.y && l.y - tip < player.y + player.size;
+        if (hitPlayer) {
+          lasers.splice(i, 1);
+          loseLives(2);
+        } else if (touchesCastle(l.x - tip, l.y - tip, tip * 2, tip * 2)) {
+          lasers.splice(i, 1);
+          loseLives(5);
+          shakeUntil = now + SHAKE_MS;
+        }
+      }
+    }
+
+    // Draw the boss: a big UFO, or an explosion if it's been beaten.
+    function drawBoss() {
+      const cx = boss.x + boss.width / 2;
+      const cy = boss.y + boss.height / 2;
+
+      if (boss.explodeTime > 0) {
+        // Pixel bits fly outward and shrink. "frames" is roughly how many
+        // frames (1/60 s each) have passed since the explosion started.
+        const elapsed = performance.now() - boss.explodeTime;
+        const t = Math.min(1, elapsed / BOSS_EXPLODE_MS);   // 0 → 1
+        const frames = elapsed / 16;
+        const size = Math.max(2, Math.round((1 - t) * 5) * 2);  // 10 → 2, in steps of 2
+        for (const p of boss.particles) {
+          ctx.fillStyle = p.color;
+          ctx.fillRect(Math.round(cx + p.vx * frames), Math.round(cy + p.vy * frames), size, size);
+        }
+        return;
+      }
+
+      drawSprite(BOSS_SPRITE, boss.x, boss.y, 5);
+    }
+
+    // The boss's health bar at the top center: one block per life, like old games.
+    function drawBossHealth() {
+      const block = 8, gap = 2;
+      const barWidth = BOSS_LIVES * (block + gap) - gap;   // 298 pixels
+      const x = Math.round((canvas.width - barWidth) / 2);
+      const y = 14;
+      for (let k = 0; k < BOSS_LIVES; k++) {
+        ctx.fillStyle = k < boss.lives ? "#f33" : "#422";
+        ctx.fillRect(x + k * (block + gap), y, block, 12);
+      }
+      ctx.fillStyle = "#fff";
+      ctx.font = "10px " + FONT;
+      ctx.textAlign = "center";
+      ctx.fillText("BOSS", canvas.width / 2, y + 28);
+    }
+
+    // Draw everything.
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Screen shake: while it's active, draw everything nudged by a small
+      // random amount. A new random nudge every frame makes it look shaky.
+      ctx.save();
+      if (performance.now() < shakeUntil) {
+        // Shake in steps of 4 pixels, so it stays chunky.
+        const shakeX = Math.round((Math.random() - 0.5) * 4) * 4;
+        const shakeY = Math.round((Math.random() - 0.5) * 4) * 4;
+        ctx.translate(shakeX, shakeY);
+      }
+
+      // Stars.
+      for (const s of stars) {
+        ctx.fillStyle = s.color;
+        ctx.fillRect(s.x, s.y, s.size, s.size);
+      }
+
+      // Hill: rusty red tiers, a lighter top edge where each tier is uncovered,
+      // and dark specks for rocks.
+      for (let k = 0; k < hill.length; k++) {
+        const t = hill[k];
+        ctx.fillStyle = "#a8452a";
+        ctx.fillRect(t.x, t.y, t.w, t.h);
+        // The top edge only shows where the tier above doesn't cover it.
+        const edgeWidth = k === 0 ? t.w : hill[k - 1].x - t.x;
+        ctx.fillStyle = "#d9733f";
+        ctx.fillRect(t.x, t.y, edgeWidth, 6);
+      }
+      ctx.fillStyle = "#6e2a18";
+      for (const s of hillSpecks) {
+        ctx.fillRect(s.x, s.y, s.size, s.size);
+      }
+
+      ctx.drawImage(castleImg, castle.x, castle.y, castle.width, castle.height);
+
+      // Player: 8x8 sprite, 3 pixels per block = 24x24 (same as player.size).
+      drawSprite(PLAYER_SPRITE, player.x, player.y, 3);
+
+      // Jetpack flame under the nozzle (column 5, row 7 of the sprite).
+      // Math.floor(time / 100) % 2 is 0 or 1, switching every 100 ms.
+      const flame = FLAME_FRAMES[Math.floor(performance.now() / 100) % 2];
+      drawSprite(flame, player.x + 5 * 3, player.y + 7 * 3, 3);
+
+      // Bullets: small yellow squares centered on each bullet.
+      ctx.fillStyle = "#ff4";
+      for (const b of bullets) {
+        ctx.fillRect(Math.round(b.x) - 3, Math.round(b.y) - 3, 6, 6);
+      }
+
+      // Aliens: 9x8 sprite, 3 pixels per block = 27x24, centered on the alien.
+      for (const a of aliens) {
+        drawSprite(ALIEN_SPRITE, a.x - 13, a.y - 12, 3);
+      }
+
+      // Lasers: a row of 5 blocks from the tip backwards, bright tip first.
+      for (const l of lasers) {
+        const dirX = l.vx / LASER_SPEED;
+        const dirY = l.vy / LASER_SPEED;
+        for (let k = 0; k < 5; k++) {
+          ctx.fillStyle = k === 0 ? "#fcc" : "#f33";
+          const px = Math.round(l.x - dirX * k * 6);
+          const py = Math.round(l.y - dirY * k * 6);
+          const half = LASER_THICKNESS / 2;
+          ctx.fillRect(px - half, py - half, LASER_THICKNESS, LASER_THICKNESS);
+        }
+      }
+
+      if (boss) drawBoss();
+
+      ctx.restore();  // stop shaking, so the text below stays still
+
+      if (boss && boss.explodeTime === 0) drawBossHealth();
+
+      // Score and lives in the top-left corner.
+      ctx.fillStyle = "#fff";
+      ctx.font = "14px " + FONT;
+      ctx.textAlign = "left";
+      ctx.fillText("SCORE " + score, 12, 28);
+      ctx.fillText("LIVES " + lives, 12, 52);
+
+      // Music hint in the bottom-left corner.
+      ctx.fillStyle = "#99a";
+      ctx.font = "8px " + FONT;
+      ctx.fillText("M: MUSIC " + (musicOn ? "ON" : "OFF"), 12, canvas.height - 12);
+
+      // End screen: darken everything and show a message.
+      if (gameOver) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = won ? "#4f4" : "#f44";
+        ctx.font = "36px " + FONT;
+        ctx.textAlign = "center";
+        ctx.fillText(won ? "YOU WIN!" : "GAME OVER", canvas.width / 2, canvas.height / 2);
+        ctx.fillStyle = "#fff";
+        ctx.font = "12px " + FONT;
+        ctx.fillText("PRESS ANY KEY TO RESTART", canvas.width / 2, canvas.height / 2 + 44);
+      }
+    }
+
+    // The game loop: update, draw, repeat (about 60 times per second).
+    function loop() {
+      if (!gameOver) update();  // freeze the game after Game Over, but keep drawing
+      draw();
+      requestAnimationFrame(loop);
+    }
+    loop();
+  </script>
+</body>
+</html>
