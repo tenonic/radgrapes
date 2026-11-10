@@ -30,6 +30,7 @@ Instructions for the game, recorded in the order they were given.
 - Hitting an obstacle stops the road and everything else for 1 second, then the run restarts.
 - Step 4: the first map (`src/maps/map1.js`) sets the road length, the speed and where the obstacles are. The road ends at a white finish line. Reaching it pauses for 2 seconds, then the map starts again. Raised road sections are not in yet.
 - Step 5: jump orbs. A glowing ring floating above the road. Pressing jump while touching it gives a fresh jump, even in mid-air. Same strength as a normal jump. Each orb works once per run and goes dim when used. Orbs are listed in the map as `{ type: "orb", at, height }`.
+- Step 6: raised road sections (blocks), as wide as the road. Land on top to run along them; running into the front is a crash. Running off the end drops the cube back down. Listed in the map as `{ type: "block", at, length, height }`.
 
 ## To do
 

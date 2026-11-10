@@ -7,6 +7,7 @@ import { createWorld } from "./world.js";
 import { createRoad } from "./road.js";
 import { createObstacles } from "./obstacles.js";
 import { createOrbs } from "./orbs.js";
+import { createBlocks } from "./blocks.js";
 import { createInput } from "./input.js";
 import { touching } from "./collision.js";
 import { CRASH_PAUSE, FINISH_PAUSE } from "./config.js";
@@ -17,8 +18,10 @@ const camera = createCamera();
 const player = createPlayer(scene);
 const world = createWorld(scene);
 createRoad(world.group, map.length);
-const obstacles = createObstacles(world.group, map.objects.filter((o) => o.type !== "orb"));
-const orbs = createOrbs(world.group, map.objects.filter((o) => o.type === "orb"));
+const objectsOfType = (type) => map.objects.filter((o) => o.type === type);
+const obstacles = createObstacles(world.group, objectsOfType("spike"));
+const orbs = createOrbs(world.group, objectsOfType("orb"));
+const blocks = createBlocks(world.group, objectsOfType("block"));
 const input = createInput();
 
 // Keep the picture the right shape when the window is resized.
@@ -49,9 +52,11 @@ function handleJump() {
   }
 }
 
-function playerHitObstacle() {
+// A crash: touching a spike, or running into the front of a raised block.
+function playerCrashed() {
   const playerBox = player.getHitbox();
-  return obstacles.getHitboxes().some((box) => touching(playerBox, box));
+  return obstacles.getHitboxes().some((box) => touching(playerBox, box))
+    || blocks.hitFront(playerBox);
 }
 
 // The game loop: runs about 60 times per second.
@@ -71,10 +76,13 @@ function loop() {
     }
   } else {
     if (jumpPressed) handleJump();
-    player.update(dt);
     world.update(dt, map.speed);
 
-    if (playerHitObstacle()) {
+    // What can the cube stand on here: the road, or the top of a raised block?
+    const groundHeight = blocks.groundHeightUnder(player.getHitbox(), player.getBottom());
+    player.update(dt, groundHeight);
+
+    if (playerCrashed()) {
       pauseTimeLeft = CRASH_PAUSE;
     } else if (world.getDistance() >= map.length) {
       pauseTimeLeft = FINISH_PAUSE;   // made it to the finish line

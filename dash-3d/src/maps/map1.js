@@ -6,10 +6,11 @@
 // Objects:
 //   { type: "spike", at }          a spike on the road
 //   { type: "orb", at, height }    a jump orb; height is how high its center floats
+//   { type: "block", at, length, height }   a raised road section; "at" is where it starts
 export default {
   name: "Map 1",
-  length: 215,     // where the finish line is
-  speed: 10,       // the normal speed, in units per second; this map takes about 21 seconds
+  length: 260,     // where the finish line is
+  speed: 10,       // the normal speed, in units per second; this map takes about 26 seconds
 
   objects: [
     { type: "spike", at: 18 },                                // single
@@ -35,9 +36,15 @@ export default {
     { type: "spike", at: 181 }, { type: "spike", at: 182 },   // double
     { type: "spike", at: 190 },                               // single
 
-    // Five spikes with an orb, to finish.
+    // Five spikes with an orb.
     { type: "spike", at: 200 }, { type: "spike", at: 201 }, { type: "spike", at: 202 },
     { type: "spike", at: 203 }, { type: "spike", at: 204 },
-    { type: "orb", at: 201.3, height: 2 }
+    { type: "orb", at: 201.3, height: 2 },
+
+    // Raised road: jump up onto a low block, then up again onto a higher one,
+    // then drop back down to the road.
+    { type: "block", at: 218, length: 10, height: 1 },
+    { type: "block", at: 228, length: 8, height: 2 },
+    { type: "spike", at: 246 }
   ]
 };

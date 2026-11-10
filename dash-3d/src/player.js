@@ -1,6 +1,6 @@
 // The player: a cube sitting on the road.
 // It stays in place front-to-back (the road moves toward it instead),
-// but it can jump up and fall back down.
+// but it can jump up, land on raised blocks, and fall back down.
 import * as THREE from "three";
 import { getHitbox } from "./collision.js";
 
@@ -38,16 +38,31 @@ export function createPlayer(scene) {
     launch();
   }
 
+  // Height of the cube's bottom above the road.
+  function getBottom() {
+    return mesh.position.y - SIZE / 2;
+  }
+
   // Gravity pulls the speed down every frame, so the cube rises, slows,
   // stops at the top, then falls faster and faster until it lands.
-  function update(dt) {
-    if (onGround) return;
+  // groundHeight: what the cube can stand on right now (0 = road, higher = a raised block).
+  function update(dt, groundHeight) {
+    if (onGround) {
+      if (getBottom() > groundHeight) {
+        // Ran off the end of a raised block: start falling.
+        onGround = false;
+        velocityY = 0;
+      } else {
+        mesh.position.y = groundHeight + SIZE / 2;   // stay on top (or step up a tiny bit)
+        return;
+      }
+    }
 
     velocityY -= GRAVITY * dt;
     mesh.position.y += velocityY * dt;
 
-    if (mesh.position.y <= GROUND_Y) {   // landed
-      mesh.position.y = GROUND_Y;
+    if (velocityY <= 0 && getBottom() <= groundHeight) {   // landed
+      mesh.position.y = groundHeight + SIZE / 2;
       velocityY = 0;
       onGround = true;
     }
@@ -64,5 +79,5 @@ export function createPlayer(scene) {
     return getHitbox(mesh, HITBOX_SHRINK);
   }
 
-  return { jump, orbJump, update, reset, getHitbox: getPlayerHitbox };
+  return { jump, orbJump, update, reset, getBottom, getHitbox: getPlayerHitbox };
 }
