@@ -3,6 +3,7 @@
 This repo holds simple games built from the user's instructions. Each game has its own folder:
 
 - [castle-game/](castle-game/): the castle game (the first game).
+- [dash-3d/](dash-3d/): a third-person 3D runner, similar to Geometry Dash (in planning).
 
 In each game folder:
 
