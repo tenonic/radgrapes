@@ -2,8 +2,10 @@
 // It stays in place front-to-back (the road moves toward it instead),
 // but it can jump up and fall back down.
 import * as THREE from "three";
+import { getHitbox } from "./collision.js";
 
 const SIZE = 1;
+const HITBOX_SHRINK = 0.05;
 const GROUND_Y = SIZE / 2;   // cube's center height when its bottom touches the road
 const JUMP_SPEED = 13;       // upward speed at the start of a jump (units per second)
 const GRAVITY = 40;          // how fast upward speed drains away (units per second, per second)
@@ -41,5 +43,16 @@ export function createPlayer(scene) {
     }
   }
 
-  return { jump, update };
+  // Put the cube back on the road, standing still.
+  function reset() {
+    mesh.position.y = GROUND_Y;
+    velocityY = 0;
+    onGround = true;
+  }
+
+  function getPlayerHitbox() {
+    return getHitbox(mesh, HITBOX_SHRINK);
+  }
+
+  return { jump, update, reset, getHitbox: getPlayerHitbox };
 }

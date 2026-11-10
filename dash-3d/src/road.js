@@ -2,13 +2,12 @@
 // Every frame the tiles move toward the camera. A tile that passes behind the
 // camera jumps to the far end, so the road never runs out.
 import * as THREE from "three";
+import { SPEED, BEHIND_CAMERA_Z } from "./config.js";
 
 const TILE_LENGTH = 4;
 const TILE_WIDTH = 6;
 const TILE_COUNT = 30;          // 30 tiles x 4 = 120 units of road
-const SPEED = 15;               // units per second
 const COLORS = [0x5a2d82, 0x3d1d5c];
-const BEHIND_CAMERA_Z = 10;     // tiles past this point get moved to the far end
 
 export function createRoad(scene) {
   const geometry = new THREE.BoxGeometry(TILE_WIDTH, 0.2, TILE_LENGTH);
