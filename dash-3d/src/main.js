@@ -7,6 +7,7 @@ import { createRoad } from "./road.js";
 import { createInput } from "./input.js";
 import { createObstacles } from "./obstacles.js";
 import { touching } from "./collision.js";
+import { CRASH_PAUSE } from "./config.js";
 
 const { scene, renderer } = createScene();
 const camera = createCamera();
@@ -21,6 +22,9 @@ window.addEventListener("resize", () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+// Seconds left in the pause after a crash. 0 means the run is going.
+let crashTimeLeft = 0;
 
 // Start the run over: everything goes back to where it began.
 function restart() {
@@ -40,12 +44,23 @@ const clock = new THREE.Clock();
 function loop() {
   const dt = Math.min(clock.getDelta(), 0.1);  // cap it, so a slow frame doesn't cause a big jump
 
-  if (input.consumeJump()) player.jump();
-  player.update(dt);
-  road.update(dt);
-  obstacles.update(dt);
+  const jumpPressed = input.consumeJump();  // read every frame, so presses during a crash are thrown away
 
-  if (playerHitObstacle()) restart();
+  if (crashTimeLeft > 0) {
+    // Crashed: nothing moves. Wait for the pause to end, then restart.
+    crashTimeLeft -= dt;
+    if (crashTimeLeft <= 0) {
+      crashTimeLeft = 0;
+      restart();
+    }
+  } else {
+    if (jumpPressed) player.jump();
+    player.update(dt);
+    road.update(dt);
+    obstacles.update(dt);
+
+    if (playerHitObstacle()) crashTimeLeft = CRASH_PAUSE;
+  }
 
   renderer.render(scene, camera);
   requestAnimationFrame(loop);

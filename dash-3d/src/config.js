@@ -4,5 +4,8 @@
 // The road and the obstacles both use this, so they always move together.
 export const SPEED = 15;
 
+// After hitting an obstacle, everything stops for this many seconds, then the run restarts.
+export const CRASH_PAUSE = 1;
+
 // Anything that moves past this point (behind the camera) is out of sight.
 export const BEHIND_CAMERA_Z = 10;

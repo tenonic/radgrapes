@@ -25,6 +25,7 @@ Instructions for the game, recorded in the order they were given.
 - Step 1: a cube on a road, camera behind it, road scrolling toward the camera.
 - Step 2: jumping with Space, Up arrow, W, click or tap. Gravity brings the cube back down. No mid-air jumps.
 - Step 3: one example obstacle, a spike that keeps coming toward the player. Hitting it restarts the run.
+- Hitting an obstacle stops the road and everything else for 1 second, then the run restarts.
 
 ## To do
 
