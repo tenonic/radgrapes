@@ -12,6 +12,7 @@ Instructions for the game, recorded in the order they were given.
 
 - Main idea: a game similar to Geometry Dash, but in third person, with the camera behind the player.
 - Keep it original: similar mechanics, but our own look, levels and music.
+- A map is a fixed level the player repeats after failing. It describes the length of the road, where the road is raised, the road's speed, and the obstacles.
 
 ## Tech and running
 
@@ -22,3 +23,8 @@ Instructions for the game, recorded in the order they were given.
 ## Progress
 
 - Step 1: a cube on a road, camera behind it, road scrolling toward the camera.
+- Step 2: jumping with Space, Up arrow, W, click or tap. Gravity brings the cube back down. No mid-air jumps.
+
+## To do
+
+- Set up auto-reload: install the VS Code "Live Server" extension (by Ritwick Dey), then right-click `index.html` and choose "Open with Live Server". It serves on port 5500, so stop the Python server once it's working.
