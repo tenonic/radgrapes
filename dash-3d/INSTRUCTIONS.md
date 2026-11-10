@@ -12,6 +12,8 @@ Instructions for the game, recorded in the order they were given.
 
 - Main idea: a game similar to Geometry Dash, but in third person, with the camera behind the player.
 - Keep it original: similar mechanics, but our own look, levels and music.
+- At the normal speed (10), one jump clears at most 3 spikes in a row, never 4.
+- Maps mix spike groups in an unpredictable order: singles, two-in-a-row and three-in-a-row, with uneven gaps.
 - A map is a fixed level the player repeats after failing. It describes the length of the road, where the road is raised, the road's speed, and the obstacles.
 
 ## Tech and running
@@ -26,6 +28,7 @@ Instructions for the game, recorded in the order they were given.
 - Step 2: jumping with Space, Up arrow, W, click or tap. Gravity brings the cube back down. No mid-air jumps.
 - Step 3: one example obstacle, a spike that keeps coming toward the player. Hitting it restarts the run.
 - Hitting an obstacle stops the road and everything else for 1 second, then the run restarts.
+- Step 4: the first map (`src/maps/map1.js`) sets the road length, the speed and where the obstacles are. The road ends at a white finish line. Reaching it pauses for 2 seconds, then the map starts again. Raised road sections are not in yet.
 
 ## To do
 

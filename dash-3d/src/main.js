@@ -1,19 +1,22 @@
-// Starts the game: builds each part, then runs the game loop.
+// Starts the game: builds each part from the map, then runs the game loop.
 import * as THREE from "three";
 import { createScene } from "./scene.js";
 import { createCamera } from "./camera.js";
 import { createPlayer } from "./player.js";
+import { createWorld } from "./world.js";
 import { createRoad } from "./road.js";
-import { createInput } from "./input.js";
 import { createObstacles } from "./obstacles.js";
+import { createInput } from "./input.js";
 import { touching } from "./collision.js";
-import { CRASH_PAUSE } from "./config.js";
+import { CRASH_PAUSE, FINISH_PAUSE } from "./config.js";
+import map from "./maps/map1.js";
 
 const { scene, renderer } = createScene();
 const camera = createCamera();
 const player = createPlayer(scene);
-const road = createRoad(scene);
-const obstacles = createObstacles(scene);
+const world = createWorld(scene);
+createRoad(world.group, map.length);
+const obstacles = createObstacles(world.group, map.obstacles);
 const input = createInput();
 
 // Keep the picture the right shape when the window is resized.
@@ -23,13 +26,13 @@ window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Seconds left in the pause after a crash. 0 means the run is going.
-let crashTimeLeft = 0;
+// Seconds left in a pause (after a crash or a finish). 0 means the run is going.
+let pauseTimeLeft = 0;
 
-// Start the run over: everything goes back to where it began.
+// Start the map over from the beginning.
 function restart() {
   player.reset();
-  obstacles.reset();
+  world.reset();
 }
 
 function playerHitObstacle() {
@@ -43,23 +46,25 @@ const clock = new THREE.Clock();
 
 function loop() {
   const dt = Math.min(clock.getDelta(), 0.1);  // cap it, so a slow frame doesn't cause a big jump
+  const jumpPressed = input.consumeJump();     // read every frame, so presses during a pause are thrown away
 
-  const jumpPressed = input.consumeJump();  // read every frame, so presses during a crash are thrown away
-
-  if (crashTimeLeft > 0) {
-    // Crashed: nothing moves. Wait for the pause to end, then restart.
-    crashTimeLeft -= dt;
-    if (crashTimeLeft <= 0) {
-      crashTimeLeft = 0;
+  if (pauseTimeLeft > 0) {
+    // Paused: nothing moves. Wait for the pause to end, then restart.
+    pauseTimeLeft -= dt;
+    if (pauseTimeLeft <= 0) {
+      pauseTimeLeft = 0;
       restart();
     }
   } else {
     if (jumpPressed) player.jump();
     player.update(dt);
-    road.update(dt);
-    obstacles.update(dt);
+    world.update(dt, map.speed);
 
-    if (playerHitObstacle()) crashTimeLeft = CRASH_PAUSE;
+    if (playerHitObstacle()) {
+      pauseTimeLeft = CRASH_PAUSE;
+    } else if (world.getDistance() >= map.length) {
+      pauseTimeLeft = FINISH_PAUSE;   // made it to the finish line
+    }
   }
 
   renderer.render(scene, camera);

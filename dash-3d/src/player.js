@@ -7,7 +7,9 @@ import { getHitbox } from "./collision.js";
 const SIZE = 1;
 const HITBOX_SHRINK = 0.05;
 const GROUND_Y = SIZE / 2;   // cube's center height when its bottom touches the road
-const JUMP_SPEED = 13;       // upward speed at the start of a jump (units per second)
+// Jump settings. At the normal speed (10), a jump clears at most 3 spikes in a row, never 4.
+// The cube goes about 1.57 units high and stays in the air for about 0.56 seconds.
+const JUMP_SPEED = 11.2;     // upward speed at the start of a jump (units per second)
 const GRAVITY = 40;          // how fast upward speed drains away (units per second, per second)
 
 export function createPlayer(scene) {

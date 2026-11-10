@@ -1,35 +1,30 @@
-// The road: a line of tiles in two alternating colors.
-// Every frame the tiles move toward the camera. A tile that passes behind the
-// camera jumps to the far end, so the road never runs out.
+// The road: a line of tiles in two alternating colors, as long as the map,
+// with a white finish line at the end.
+// A distance "d" along the road is at z = -d (forward is the -z direction).
 import * as THREE from "three";
-import { SPEED, BEHIND_CAMERA_Z } from "./config.js";
 
 const TILE_LENGTH = 4;
 const TILE_WIDTH = 6;
-const TILE_COUNT = 30;          // 30 tiles x 4 = 120 units of road
 const COLORS = [0x5a2d82, 0x3d1d5c];
+const EXTRA_BEHIND = 12;   // road behind the start line, so the camera sees road under it
 
-export function createRoad(scene) {
+export function createRoad(parent, length) {
   const geometry = new THREE.BoxGeometry(TILE_WIDTH, 0.2, TILE_LENGTH);
-  const tiles = [];
+  const materials = COLORS.map((color) => new THREE.MeshStandardMaterial({ color }));
 
-  for (let i = 0; i < TILE_COUNT; i++) {
-    const material = new THREE.MeshStandardMaterial({ color: COLORS[i % 2] });
-    const tile = new THREE.Mesh(geometry, material);
-    tile.position.set(0, -0.1, BEHIND_CAMERA_Z - i * TILE_LENGTH);  // top of the tile is at y = 0
-    scene.add(tile);
-    tiles.push(tile);
+  const tileCount = Math.ceil((length + EXTRA_BEHIND) / TILE_LENGTH);
+  for (let i = 0; i < tileCount; i++) {
+    const tile = new THREE.Mesh(geometry, materials[i % 2]);
+    const startOfTile = -EXTRA_BEHIND + i * TILE_LENGTH;
+    tile.position.set(0, -0.1, -(startOfTile + TILE_LENGTH / 2));   // top of the tile is at y = 0
+    parent.add(tile);
   }
 
-  // dt: seconds since the last frame.
-  function update(dt) {
-    for (const tile of tiles) {
-      tile.position.z += SPEED * dt;
-      if (tile.position.z > BEHIND_CAMERA_Z) {
-        tile.position.z -= TILE_COUNT * TILE_LENGTH;
-      }
-    }
-  }
-
-  return { update };
+  // Finish line: a thin white strip across the road.
+  const finish = new THREE.Mesh(
+    new THREE.BoxGeometry(TILE_WIDTH, 0.22, 0.5),
+    new THREE.MeshStandardMaterial({ color: 0xffffff })
+  );
+  finish.position.set(0, -0.1, -length);
+  parent.add(finish);
 }

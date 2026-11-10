@@ -1,11 +1,7 @@
-// Settings shared by more than one file.
-
-// How fast the world moves toward the player, in units per second.
-// The road and the obstacles both use this, so they always move together.
-export const SPEED = 15;
+// Settings shared by the whole game. Per-map settings (like speed) live in src/maps/.
 
 // After hitting an obstacle, everything stops for this many seconds, then the run restarts.
 export const CRASH_PAUSE = 1;
 
-// Anything that moves past this point (behind the camera) is out of sight.
-export const BEHIND_CAMERA_Z = 10;
+// After crossing the finish line, everything stops for this many seconds, then the map starts again.
+export const FINISH_PAUSE = 2;
