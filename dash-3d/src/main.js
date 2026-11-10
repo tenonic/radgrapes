@@ -6,6 +6,7 @@ import { createPlayer } from "./player.js";
 import { createWorld } from "./world.js";
 import { createRoad } from "./road.js";
 import { createObstacles } from "./obstacles.js";
+import { createOrbs } from "./orbs.js";
 import { createInput } from "./input.js";
 import { touching } from "./collision.js";
 import { CRASH_PAUSE, FINISH_PAUSE } from "./config.js";
@@ -16,7 +17,8 @@ const camera = createCamera();
 const player = createPlayer(scene);
 const world = createWorld(scene);
 createRoad(world.group, map.length);
-const obstacles = createObstacles(world.group, map.obstacles);
+const obstacles = createObstacles(world.group, map.objects.filter((o) => o.type !== "orb"));
+const orbs = createOrbs(world.group, map.objects.filter((o) => o.type === "orb"));
 const input = createInput();
 
 // Keep the picture the right shape when the window is resized.
@@ -33,6 +35,18 @@ let pauseTimeLeft = 0;
 function restart() {
   player.reset();
   world.reset();
+  orbs.reset();
+}
+
+// A jump press uses an orb if the player is touching one; otherwise it's a normal jump.
+function handleJump() {
+  const orb = orbs.findTouched(player.getHitbox());
+  if (orb) {
+    orbs.use(orb);
+    player.orbJump();
+  } else {
+    player.jump();
+  }
 }
 
 function playerHitObstacle() {
@@ -56,7 +70,7 @@ function loop() {
       restart();
     }
   } else {
-    if (jumpPressed) player.jump();
+    if (jumpPressed) handleJump();
     player.update(dt);
     world.update(dt, map.speed);
 

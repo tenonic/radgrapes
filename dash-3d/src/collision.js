@@ -4,6 +4,7 @@ import * as THREE from "three";
 // Each object gets an invisible box around it. If the boxes overlap, they touch.
 // "shrink" makes a box a little smaller than the object, so a hit only counts
 // when it clearly looks like one (the corners of a spike don't count).
+// A negative "shrink" makes the box bigger instead (used for orbs, so they're easy to catch).
 export function getHitbox(object, shrink = 0) {
   return new THREE.Box3().setFromObject(object).expandByScalar(-shrink);
 }

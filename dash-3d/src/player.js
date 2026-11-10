@@ -23,11 +23,19 @@ export function createPlayer(scene) {
   let velocityY = 0;     // current up/down speed: positive = rising, negative = falling
   let onGround = true;
 
-  // Start a jump, but only from the ground (no jumping in mid-air).
-  function jump() {
-    if (!onGround) return;
+  function launch() {
     velocityY = JUMP_SPEED;
     onGround = false;
+  }
+
+  // A normal jump: only from the ground (no jumping in mid-air).
+  function jump() {
+    if (onGround) launch();
+  }
+
+  // A jump from an orb: works anywhere, even in mid-air.
+  function orbJump() {
+    launch();
   }
 
   // Gravity pulls the speed down every frame, so the cube rises, slows,
@@ -56,5 +64,5 @@ export function createPlayer(scene) {
     return getHitbox(mesh, HITBOX_SHRINK);
   }
 
-  return { jump, update, reset, getHitbox: getPlayerHitbox };
+  return { jump, orbJump, update, reset, getHitbox: getPlayerHitbox };
 }
