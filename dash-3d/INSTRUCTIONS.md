@@ -31,7 +31,12 @@ Instructions for the game, recorded in the order they were given.
 - Step 4: the first map (`src/maps/map1.js`) sets the road length, the speed and where the obstacles are. The road ends at a white finish line. Reaching it pauses for 2 seconds, then the map starts again. Raised road sections are not in yet.
 - Step 5: jump orbs. A glowing ring floating above the road. Pressing jump while touching it gives a fresh jump, even in mid-air. Same strength as a normal jump. Each orb works once per run and goes dim when used. Orbs are listed in the map as `{ type: "orb", at, height }`.
 - Step 6: raised road sections (blocks), as wide as the road. Land on top to run along them; running into the front is a crash. Running off the end drops the cube back down. Listed in the map as `{ type: "block", at, length, height }`.
+- Step 7: ship portals. Passing through a portal with `mode: "ship"` turns the cube into a ship; `mode: "cube"` turns it back. The ship flies up while jump is held and drifts down when it's let go. It can't go above a ceiling (height 5), slides along the road, and still crashes into spikes and block fronts. Listed in the map as `{ type: "portal", at, mode }`.
+- Step 8: spider portals (`mode: "spider"`). Pressing jump teleports the spider instantly between the road and the ceiling, only while touching one. Ship and spider sections get a visible ceiling at height 5. Spikes can hang from the ceiling: `{ type: "spike", at, onCeiling: true }`.
+- Map 1 is now about 1 minute long, with cube, ship and spider sections.
 
 ## To do
+
+- Add more portal types (spider is done).
 
 - Set up auto-reload: install the VS Code "Live Server" extension (by Ritwick Dey), then right-click `index.html` and choose "Open with Live Server". It serves on port 5500, so stop the Python server once it's working.

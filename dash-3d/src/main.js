@@ -8,6 +8,8 @@ import { createRoad } from "./road.js";
 import { createObstacles } from "./obstacles.js";
 import { createOrbs } from "./orbs.js";
 import { createBlocks } from "./blocks.js";
+import { createPortals } from "./portals.js";
+import { createCeilings } from "./ceilings.js";
 import { createInput } from "./input.js";
 import { touching } from "./collision.js";
 import { CRASH_PAUSE, FINISH_PAUSE } from "./config.js";
@@ -22,6 +24,8 @@ const objectsOfType = (type) => map.objects.filter((o) => o.type === type);
 const obstacles = createObstacles(world.group, objectsOfType("spike"));
 const orbs = createOrbs(world.group, objectsOfType("orb"));
 const blocks = createBlocks(world.group, objectsOfType("block"));
+const portals = createPortals(world.group, objectsOfType("portal"));
+const ceilings = createCeilings(world.group, objectsOfType("portal"), map.length);
 const input = createInput();
 
 // Keep the picture the right shape when the window is resized.
@@ -39,10 +43,25 @@ function restart() {
   player.reset();
   world.reset();
   orbs.reset();
+  portals.reset();
 }
 
-// A jump press uses an orb if the player is touching one; otherwise it's a normal jump.
+// What the player can stand on right now: the road, or the top of a raised block.
+function groundHeightUnderPlayer() {
+  return blocks.groundHeightUnder(player.getHitbox(), player.getBottom());
+}
+
+// What a jump press does depends on the mode:
+// - cube: use an orb if touching one, otherwise a normal jump.
+// - spider: teleport between the road and the ceiling.
+// - ship: nothing (it flies by holding).
 function handleJump() {
+  const mode = player.getMode();
+  if (mode === "spider") {
+    player.flip(groundHeightUnderPlayer(), ceilings.isCeilingAt(world.getDistance()));
+    return;
+  }
+  if (mode !== "cube") return;
   const orb = orbs.findTouched(player.getHitbox());
   if (orb) {
     orbs.use(orb);
@@ -78,9 +97,16 @@ function loop() {
     if (jumpPressed) handleJump();
     world.update(dt, map.speed);
 
-    // What can the cube stand on here: the road, or the top of a raised block?
-    const groundHeight = blocks.groundHeightUnder(player.getHitbox(), player.getBottom());
-    player.update(dt, groundHeight);
+    // Passed through a portal? Switch to its mode.
+    const newMode = portals.passed(world.getDistance());
+    if (newMode) player.setMode(newMode);
+
+    player.update(
+      dt,
+      groundHeightUnderPlayer(),
+      input.isHeld(),
+      ceilings.isCeilingAt(world.getDistance())
+    );
 
     if (playerCrashed()) {
       pauseTimeLeft = CRASH_PAUSE;
