@@ -136,7 +136,7 @@ function checkPads() {
 // A crash: touching a spike, or running into the front of a raised block.
 function playerCrashed() {
   const playerBox = player.getHitbox();
-  return obstacles.getHitboxes().some((box) => touching(playerBox, box))
+  return obstacles.getHitboxes(world.getDistance()).some((box) => touching(playerBox, box))
     || blocks.hitFront(playerBox);
 }
 

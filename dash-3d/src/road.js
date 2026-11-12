@@ -10,17 +10,25 @@ export const TILE_LENGTH = 4;
 export const EXTRA_BEHIND = 12;   // road behind the start line, so the camera sees road under it
 const TILE_WIDTH = 6;
 
+// A long map has thousands of tiles, so they're drawn as "instanced" meshes
+// (one shape drawn many times in one go), one for each of the two colors.
 export function createRoad(parent, length) {
   const geometry = new THREE.BoxGeometry(TILE_WIDTH, 0.2, TILE_LENGTH);
-  const materials = palette.road.map((color) => paletteMaterial(color));
-
   const tileCount = Math.ceil((length + EXTRA_BEHIND) / TILE_LENGTH);
-  for (let i = 0; i < tileCount; i++) {
-    const tile = new THREE.Mesh(geometry, materials[i % 2]);
-    const startOfTile = -EXTRA_BEHIND + i * TILE_LENGTH;
-    tile.position.set(0, -0.1, -(startOfTile + TILE_LENGTH / 2));   // top of the tile is at y = 0
-    parent.add(tile);
-  }
+  const place = new THREE.Object3D();   // a helper used to work out each tile's position
+
+  palette.road.forEach((color, colorIndex) => {
+    const count = Math.ceil((tileCount - colorIndex) / 2);   // tiles of this color
+    const tiles = new THREE.InstancedMesh(geometry, paletteMaterial(color), count);
+    let i = 0;
+    for (let t = colorIndex; t < tileCount; t += 2) {        // every other tile
+      const startOfTile = -EXTRA_BEHIND + t * TILE_LENGTH;
+      place.position.set(0, -0.1, -(startOfTile + TILE_LENGTH / 2));   // top of the tile is at y = 0
+      place.updateMatrix();
+      tiles.setMatrixAt(i++, place.matrix);
+    }
+    parent.add(tiles);
+  });
 
   // Finish line: a thin white strip across the road.
   const finish = new THREE.Mesh(

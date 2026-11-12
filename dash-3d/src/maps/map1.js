@@ -1,4 +1,6 @@
 // The first map. Distances are measured along the road from the start, in units.
+// The first 715 units (about 72 seconds) are written by hand, below. The rest, up to
+// about 7150 units (about 12 minutes), is built by the level generator (generate.js).
 // (The cube is 1 unit wide. At speed 10, one jump covers about 5.6 units of road
 // and clears at most 3 spikes in a row.)
 // Singles, doubles and triples are mixed, with uneven gaps, so the rhythm is hard to guess.
@@ -14,13 +16,10 @@
 //                                  Ship, spider and UFO sections get a ceiling, up to the next portal.
 //   { type: "colors", at, theme }  fades the sky, road, walls and blocks into a new color theme
 //                                  (purple, teal, blue, green or orange; see themes.js).
-export default {
-  name: "Map 1",
-  length: 715,     // where the finish line is
-  speed: 10,
-  theme: "purple", // the colors at the start       // the normal speed, in units per second; this map takes about 72 seconds
+import { generateMap } from "./generate.js";
 
-  objects: [
+// The hand-made first part.
+const handmade = [
     // Easy start: two singles with lots of room, then one double.
     { type: "spike", at: 25 },                                // single
     { type: "spike", at: 40 },                                // single
@@ -86,14 +85,13 @@ export default {
     { type: "spike", at: 434 }, { type: "spike", at: 435 }, { type: "spike", at: 436 }, { type: "spike", at: 437 },
     { type: "spike", at: 446, onCeiling: true }, { type: "spike", at: 447, onCeiling: true },
     { type: "spike", at: 448, onCeiling: true }, { type: "spike", at: 449, onCeiling: true },
-    // Faster: road, ceiling, road.
+    // A bit faster: road, ceiling, road.
     { type: "spike", at: 458 }, { type: "spike", at: 459 },
-    { type: "spike", at: 466, onCeiling: true }, { type: "spike", at: 467, onCeiling: true },
-    { type: "spike", at: 474 }, { type: "spike", at: 475 },
-    // A tall block on the road: stay on the ceiling, then drop down past the ceiling spikes.
-    { type: "block", at: 484, length: 5, height: 2 },
-    { type: "spike", at: 495, onCeiling: true }, { type: "spike", at: 496, onCeiling: true },
-    { type: "spike", at: 497, onCeiling: true },
+    { type: "spike", at: 468, onCeiling: true }, { type: "spike", at: 469, onCeiling: true },
+    { type: "spike", at: 478 }, { type: "spike", at: 479 },
+    // A tall block on the road: stay on the ceiling, then drop down before the ceiling spikes.
+    { type: "block", at: 486, length: 4, height: 2 },
+    { type: "spike", at: 499, onCeiling: true }, { type: "spike", at: 500, onCeiling: true },
     { type: "portal", at: 505, mode: "cube" },
     { type: "colors", at: 505, theme: "purple" },
 
@@ -137,6 +135,16 @@ export default {
     { type: "portal", at: 690, mode: "cube" },
     { type: "colors", at: 690, theme: "purple" },
 
-    { type: "spike", at: 702 }                                // last jump
-  ]
+    { type: "spike", at: 702 }
+];
+
+// The generated rest. Seed 1 always builds exactly the same level.
+const generated = generateMap({ start: 715, end: 7150, seed: 1 });
+
+export default {
+  name: "Map 1",
+  length: generated.length,   // where the finish line is
+  speed: 10,                  // the normal speed, in units per second; about 12 minutes in all
+  theme: "purple",            // the colors at the start
+  objects: [...handmade, ...generated.objects]
 };
