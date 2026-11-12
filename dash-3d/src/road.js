@@ -2,16 +2,17 @@
 // with a white finish line at the end.
 // A distance "d" along the road is at z = -d (forward is the -z direction).
 import * as THREE from "three";
+import { palette, paletteMaterial } from "./palette.js";
 
-// Shared with walls.js, so the walls match the road.
+// Shared with walls.js, so the walls line up with the road.
+// (The road's colors come from the palette, so they change with the theme.)
 export const TILE_LENGTH = 4;
-export const COLORS = [0x5a2d82, 0x3d1d5c];
 export const EXTRA_BEHIND = 12;   // road behind the start line, so the camera sees road under it
 const TILE_WIDTH = 6;
 
 export function createRoad(parent, length) {
   const geometry = new THREE.BoxGeometry(TILE_WIDTH, 0.2, TILE_LENGTH);
-  const materials = COLORS.map((color) => new THREE.MeshStandardMaterial({ color }));
+  const materials = palette.road.map((color) => paletteMaterial(color));
 
   const tileCount = Math.ceil((length + EXTRA_BEHIND) / TILE_LENGTH);
   for (let i = 0; i < tileCount; i++) {

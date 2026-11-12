@@ -13,6 +13,8 @@
 // - The ARRANGEMENT lists the sections in order and which instruments play in each.
 //   9 sections = 72 seconds, about as long as Map 1. After that, it loops.
 
+import { onAudioReady, getNoise } from "./audio.js";
+
 const BPM = 120;
 const STEP = 60 / BPM / 4;                 // seconds per step
 const SECTION_STEPS = 64;
@@ -77,7 +79,7 @@ function noteToHz(n) {
 }
 
 export function createMusic() {
-  let audio = null;        // the browser's audio system; created on the first click or key press
+  let audio = null;        // the browser's audio system (see audio.js); ready after the first click or key press
   let master = null;       // overall volume (0 when music is turned off)
   let runVolume = null;    // volume for the current run; faded out to stop the song
   let noise = null;        // random noise, used for the drums
@@ -291,31 +293,18 @@ export function createMusic() {
     stepTime = audio.currentTime + 0.05 + (step * STEP - offset);
   }
 
-  // Browsers only allow sound after the player clicks or presses a key.
-  // On the first one, set up the audio and join the song where the run is now.
-  function unlock() {
-    if (audio) return;
-    audio = new AudioContext();
+  // Once sound is allowed (after the first click or key press), set up the
+  // instruments and join the song where the run is now.
+  onAudioReady((readyAudio) => {
+    audio = readyAudio;
+    noise = getNoise();
     master = audio.createGain();
     master.gain.value = enabled ? VOLUME : 0;
     master.connect(audio.destination);
     reverb = createReverb();
 
-    noise = audio.createBuffer(1, audio.sampleRate * 1.5, audio.sampleRate);   // long enough for the crash
-    const data = noise.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-
     if (playing) begin((performance.now() - runStartedAt) / 1000);
     setInterval(schedule, 25);
-  }
-  window.addEventListener("pointerdown", unlock);
-  window.addEventListener("keydown", unlock);
-
-  // When the tab is hidden the game freezes, so pause the music too, to stay in sync.
-  document.addEventListener("visibilitychange", () => {
-    if (!audio) return;
-    if (document.hidden) audio.suspend();
-    else audio.resume();
   });
 
   // ---------- Controls for the game ----------

@@ -7,13 +7,18 @@
 //   { type: "spike", at }          a spike on the road
 //   { type: "spike", at, onCeiling: true }   a spike hanging from the ceiling (spider sections)
 //   { type: "orb", at, height }    a jump orb; height is how high its center floats
+//   { type: "pad", at, height }    a jump pad: launches the cube high, no press needed.
+//                                  height (optional) puts it on top of a raised block.
 //   { type: "block", at, length, height }   a raised road section; "at" is where it starts
 //   { type: "portal", at, mode }   changes the player to "cube", "ship", "spider" or "ufo".
 //                                  Ship, spider and UFO sections get a ceiling, up to the next portal.
+//   { type: "colors", at, theme }  fades the sky, road, walls and blocks into a new color theme
+//                                  (purple, teal, blue, green or orange; see themes.js).
 export default {
   name: "Map 1",
   length: 715,     // where the finish line is
-  speed: 10,       // the normal speed, in units per second; this map takes about 72 seconds
+  speed: 10,
+  theme: "purple", // the colors at the start       // the normal speed, in units per second; this map takes about 72 seconds
 
   objects: [
     // Easy start: two singles with lots of room, then one double.
@@ -50,6 +55,7 @@ export default {
 
     // Ship section: hold jump to fly over pillars and a long row of spikes.
     { type: "portal", at: 255, mode: "ship" },
+    { type: "colors", at: 255, theme: "teal" },
     { type: "block", at: 268, length: 3, height: 2 },
     { type: "block", at: 280, length: 3, height: 3 },
     { type: "spike", at: 286 }, { type: "spike", at: 287 }, { type: "spike", at: 288 },
@@ -58,16 +64,20 @@ export default {
     { type: "block", at: 298, length: 4, height: 2 },
     { type: "block", at: 308, length: 3, height: 3 },
     { type: "portal", at: 320, mode: "cube" },
+    { type: "colors", at: 320, theme: "blue" },
 
     // Back to the cube.
     { type: "spike", at: 332 },                               // single
     { type: "spike", at: 345 }, { type: "spike", at: 346 },   // double
     { type: "spike", at: 358 },                               // single
     { type: "spike", at: 373 },                               // single
-    { type: "spike", at: 387 },                               // single
+    // A jump pad: it launches you onto a block too tall to jump onto normally.
+    { type: "pad", at: 380 },
+    { type: "block", at: 384, length: 8, height: 2 },
 
     // Spider section: press jump to teleport between the road and the ceiling.
     { type: "portal", at: 400, mode: "spider" },
+    { type: "colors", at: 400, theme: "green" },
     // Spikes on the road: be on the ceiling.
     { type: "spike", at: 410 }, { type: "spike", at: 411 }, { type: "spike", at: 412 }, { type: "spike", at: 413 },
     // Spikes on the ceiling: be on the road.
@@ -85,6 +95,7 @@ export default {
     { type: "spike", at: 495, onCeiling: true }, { type: "spike", at: 496, onCeiling: true },
     { type: "spike", at: 497, onCeiling: true },
     { type: "portal", at: 505, mode: "cube" },
+    { type: "colors", at: 505, theme: "purple" },
 
     // Cube again, to the finish.
     { type: "spike", at: 518 },                               // single
@@ -100,6 +111,7 @@ export default {
 
     // UFO section: tap jump for small boosts to stay in the air.
     { type: "portal", at: 600, mode: "ufo" },
+    { type: "colors", at: 600, theme: "orange" },
     // A long row of road spikes: keep tapping to stay up.
     { type: "spike", at: 610 }, { type: "spike", at: 611 }, { type: "spike", at: 612 },
     { type: "spike", at: 613 }, { type: "spike", at: 614 }, { type: "spike", at: 615 },
@@ -123,6 +135,7 @@ export default {
     // One more tall pillar.
     { type: "block", at: 676, length: 3, height: 3 },
     { type: "portal", at: 690, mode: "cube" },
+    { type: "colors", at: 690, theme: "purple" },
 
     { type: "spike", at: 702 }                                // last jump
   ]

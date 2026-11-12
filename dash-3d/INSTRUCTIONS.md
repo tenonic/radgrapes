@@ -38,6 +38,12 @@ Instructions for the game, recorded in the order they were given.
 - New models from the user's pictures: a cartoon rocket-ship, a UFO with a tall glass dome (cube's blue, no lights), and a blocky spider with one forward-facing eye and walking claw legs.
 - Music: an original electronic song made in code (Web Audio API, no music file), in `src/music.js`. It starts from the beginning with every run and stops on a crash or at the finish, so the same part always plays at the same place. Different parts for the ship, spider and UFO sections. Press M to turn it on or off. Browsers only allow sound after the first click or key press.
 - HUD (`src/hud.js`, `src/hud.css`): a progress bar with a percentage at the top, an attempt counter in the top-left (goes up every time the map restarts), and a "Level complete!" message at the finish (3-second pause).
+- Color themes (`src/themes.js`, `src/palette.js`): the map sets a starting theme and lists where colors change: `{ type: "colors", at, theme }`. The sky, road, walls, ceilings and blocks fade into the new theme over about 1 second. Spikes, orbs, portals and the player keep their own colors. Map 1: purple start, teal ship, blue cube, green spider, purple cube, orange UFO, purple finish.
+- Crash effect (`src/effects.js`, `src/sounds.js`): the player shatters into pieces, a crash sound plays, and the camera shakes.
+- Jump pads (`src/pads.js`): yellow plates that launch the cube about 2.8 units high with no press. Each works once per run. `{ type: "pad", at, height }` (height optional, for a pad on a block).
+- Start menu (`src/menu.js`, `src/menu.css`): title, map name and controls. The first press starts the game.
+- Best progress: the best % on each map is saved in the browser and shown under the progress bar, with a marker on the bar (`src/save.js`).
+- `src/audio.js` sets up the browser's sound system once, for both the music and the sound effects.
 - Side walls along both edges of the road, taller than the screen, scrolling with the world. They look like the road: panels in the road's two colors, lined up with the road tiles.
 
 ## To do

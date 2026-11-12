@@ -2,12 +2,12 @@
 // A section starts at one of those portals and ends at the next portal (or the finish).
 import * as THREE from "three";
 import { CEILING_HEIGHT } from "./config.js";
+import { palette, paletteMaterial } from "./palette.js";
 
 const MODES_WITH_CEILING = ["ship", "spider", "ufo"];
 const WIDTH = 6;               // as wide as the road
 const THICKNESS = 0.2;
 const OVERHANG = 2;            // the roof starts a little before the portal and ends a little after
-const COLOR = 0x3d1d5c;
 
 export function createCeilings(parent, portals, mapLength) {
   const sorted = [...portals].sort((a, b) => a.at - b.at);
@@ -20,7 +20,7 @@ export function createCeilings(parent, portals, mapLength) {
     sections.push({ start: portal.at, end });
   });
 
-  const material = new THREE.MeshStandardMaterial({ color: COLOR });
+  const material = paletteMaterial(palette.road[1]);   // the darker road shade
   for (const { start, end } of sections) {
     const length = end - start + OVERHANG * 2;
     const roof = new THREE.Mesh(new THREE.BoxGeometry(WIDTH, THICKNESS, length), material);

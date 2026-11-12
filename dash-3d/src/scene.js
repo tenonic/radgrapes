@@ -1,11 +1,14 @@
 // The 3D world: the scene that holds everything, the lights, and the renderer
 // that draws the scene onto the page.
 import * as THREE from "three";
+import { palette } from "./palette.js";
 
 export function createScene() {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a0b2e);         // dark purple sky
-  scene.fog = new THREE.Fog(0x1a0b2e, 20, 90);          // far-away things fade into the sky
+  // The sky and the fog share the palette's sky color, so they follow theme changes.
+  scene.background = palette.sky;
+  scene.fog = new THREE.Fog(0x000000, 20, 90);          // far-away things fade into the sky
+  scene.fog.color = palette.sky;
 
   // Soft light from everywhere, so nothing is completely black.
   scene.add(new THREE.AmbientLight(0xffffff, 0.6));

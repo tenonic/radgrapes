@@ -5,7 +5,8 @@
 // There are hundreds of panels, so they're drawn as "instanced" meshes: one shape,
 // drawn many times in different places in one go. That keeps the game fast.
 import * as THREE from "three";
-import { TILE_LENGTH, COLORS, EXTRA_BEHIND } from "./road.js";
+import { TILE_LENGTH, EXTRA_BEHIND } from "./road.js";
+import { palette, paletteMaterial } from "./palette.js";
 
 const ROAD_HALF_WIDTH = 3;
 const THICKNESS = 0.2;
@@ -22,11 +23,11 @@ export function createWalls(parent, length) {
 
   // The walls use the road's colors the other way around, so each wall panel is the
   // opposite color of the road tile beside it, like a checkerboard.
-  const wallColors = [COLORS[1], COLORS[0]];
+  const wallColors = [palette.road[1], palette.road[0]];
 
   // One instanced mesh per color: even panels in the first color, odd ones in the second.
   wallColors.forEach((color, colorIndex) => {
-    const material = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: GLOW });
+    const material = paletteMaterial(color, GLOW);
     const count = Math.ceil((panelCount - colorIndex) / 2) * 2;   // panels of this color, both sides
     const panels = new THREE.InstancedMesh(geometry, material, count);
 

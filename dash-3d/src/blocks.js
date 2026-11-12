@@ -2,15 +2,15 @@
 // but crashes into the front.
 import * as THREE from "three";
 import { touching } from "./collision.js";
+import { palette, paletteMaterial } from "./palette.js";
 
 const WIDTH = 6;            // as wide as the road
-const COLOR = 0x8a4fd1;
 // Landing tolerance: if the cube is at most this far below a block's top,
 // it gets lifted up onto the block instead of crashing. This makes near-misses fair.
 const STEP_UP = 0.15;
 
 export function createBlocks(parent, list) {
-  const material = new THREE.MeshStandardMaterial({ color: COLOR });
+  const material = paletteMaterial(palette.block);
 
   const blocks = list.map(({ at, length, height }) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(WIDTH, height, length), material);

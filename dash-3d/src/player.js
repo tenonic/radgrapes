@@ -10,7 +10,8 @@ import { createSpiderModel } from "./models/spider.js";
 import { createUfoModel } from "./models/ufo.js";
 import { CEILING_HEIGHT } from "./config.js";
 
-const COLOR = 0x33ccff;
+export const PLAYER_COLOR = 0x33ccff;
+const COLOR = PLAYER_COLOR;
 const CUBE_OPACITY = 0.6;    // 1 = solid, 0 = invisible
 
 // Cube settings. At the normal speed (10), a jump clears at most 3 spikes in a row, never 4.
@@ -20,6 +21,7 @@ const CUBE_OPACITY = 0.6;    // 1 = solid, 0 = invisible
 const CUBE_SIZE = 1;
 const JUMP_SPEED = 11.6;     // upward speed at the start of a jump (units per second)
 const GRAVITY = 40;          // how fast upward speed drains away (units per second, per second)
+const PAD_SPEED = 15;        // jump pads launch the cube this fast: about 2.8 units high
 
 // Ship settings.
 const SHIP_THRUST = 30;      // upward pull while jump is held
@@ -107,6 +109,18 @@ export function createPlayer(scene) {
   // A normal jump: only the cube, only from the ground (no jumping in mid-air).
   function jump() {
     if (mode === "cube" && onGround) launch();
+  }
+
+  // A launch from a jump pad: much higher than a normal jump. Only the cube uses pads.
+  function padJump() {
+    if (mode !== "cube") return;
+    velocityY = PAD_SPEED;
+    onGround = false;
+  }
+
+  // Show or hide the player (it's hidden while its pieces fly apart after a crash).
+  function setVisible(visible) {
+    body.visible = visible;
   }
 
   // A jump from an orb: works anywhere, even in mid-air.
@@ -220,6 +234,7 @@ export function createPlayer(scene) {
 
   // Back to a cube on the road, standing still.
   function reset() {
+    setVisible(true);
     setMode("cube");
     setBottom(0);
     onGround = true;
@@ -241,5 +256,5 @@ export function createPlayer(scene) {
   }
 
   reset();
-  return { jump, orbJump, flip, flap, setMode, getMode, update, reset, getBottom, getHitbox };
+  return { jump, padJump, orbJump, flip, flap, setVisible, setMode, getMode, update, reset, getBottom, getHitbox };
 }

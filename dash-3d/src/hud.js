@@ -1,5 +1,5 @@
-// The HUD (heads-up display): the progress bar, the attempt counter, and big
-// messages like "Level complete!", drawn as web page elements over the 3D view.
+// The HUD (heads-up display): the progress bar (with a marker at your best),
+// the attempt counter, and big messages like "Level complete!", drawn as web page elements over the 3D view.
 // Its look is in hud.css.
 
 function createElement(className, parent) {
@@ -15,7 +15,9 @@ export function createHud() {
   const progress = createElement("hud-progress", hud);
   const track = createElement("hud-progress-track", progress);
   const fill = createElement("hud-progress-fill", track);
+  const bestMarker = createElement("hud-progress-best", track);
   const percentText = createElement("hud-progress-text", progress);
+  const bestText = createElement("hud-best", hud);
 
   const attempt = createElement("hud-attempt", hud);
   const message = createElement("hud-message", hud);
@@ -25,6 +27,13 @@ export function createHud() {
     const percent = Math.floor(Math.min(Math.max(fraction, 0), 1) * 100);
     fill.style.width = `${percent}%`;
     percentText.textContent = `${percent}%`;
+  }
+
+  // Your best progress on this map, in percent: a marker on the bar, and text under it.
+  function setBest(percent) {
+    bestMarker.style.left = `${percent}%`;
+    bestMarker.style.display = percent > 0 ? "block" : "none";
+    bestText.textContent = `Best ${percent}%`;
   }
 
   function setAttempt(number) {
@@ -46,5 +55,5 @@ export function createHud() {
     message.classList.remove("visible");
   }
 
-  return { setProgress, setAttempt, showMessage, hideMessage };
+  return { setProgress, setBest, setAttempt, showMessage, hideMessage };
 }

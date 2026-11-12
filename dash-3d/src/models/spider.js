@@ -3,7 +3,7 @@
 // The eye faces forward, so it isn't seen from the camera behind.
 // The legs walk: diagonal pairs swing together, like a real bug.
 //
-// Sizes: about 1 tall (y from -0.5 at the feet to 0.5 at the top), centered on its middle.
+// Sizes: the feet are at y = -0.5 and the top of the body at y = 0.2 (short legs).
 // To hang from the ceiling, the whole model is turned upside down.
 import * as THREE from "three";
 import { withOutline, toon } from "./outline.js";
@@ -13,6 +13,7 @@ const EYE_COLOR = 0xf2f2f2;
 const OUTLINE_COLOR = 0x111122;
 
 const BODY_WIDTH = 0.75;
+const BODY_BOTTOM = -0.3;        // the body sits this low, so the legs are short
 const LEG_RADIUS = 0.07;
 const LEG_OUTLINE = 0.025;       // how much thicker a leg's outline is than the leg
 
@@ -32,7 +33,7 @@ function createBody(color) {
 
   const geometry = new THREE.ExtrudeGeometry(side, { depth: BODY_WIDTH, bevelEnabled: false });
   geometry.rotateY(Math.PI / 2);                 // turn it so the front points down the road
-  geometry.translate(-BODY_WIDTH / 2, 0, 0);     // center it left-to-right
+  geometry.translate(-BODY_WIDTH / 2, BODY_BOTTOM, 0);   // center it left-to-right, and lower it
   return withOutline(new THREE.Mesh(geometry, toon(color)), 1.05);
 }
 
@@ -41,7 +42,7 @@ function createEye() {
   const geometry = new THREE.CylinderGeometry(0.15, 0.15, 0.04, 32);
   geometry.rotateX(Math.PI / 2);                 // face forward
   const eye = new THREE.Mesh(geometry, toon(EYE_COLOR, 0.3));
-  eye.position.set(0, 0.28, -0.41);
+  eye.position.set(0, BODY_BOTTOM + 0.28, -0.41);
   return withOutline(eye, 1.15);
 }
 
@@ -76,9 +77,9 @@ export function createSpiderModel(color) {
   const legs = [];
   for (const side of [-1, 1]) {
     // Front legs: almost straight down.
-    const front = createLeg([side * 0.25, 0.05, -0.2], [side * 0.36, -0.1, -0.36], [side * 0.35, -0.5, -0.3], legMaterial);
+    const front = createLeg([side * 0.25, BODY_BOTTOM + 0.05, -0.2], [side * 0.33, -0.36, -0.3], [side * 0.33, -0.5, -0.27], legMaterial);
     // Back legs: curve backward like claws.
-    const back = createLeg([side * 0.25, 0.1, 0.15], [side * 0.4, 0.15, 0.6], [side * 0.4, -0.5, 0.55], legMaterial);
+    const back = createLeg([side * 0.25, BODY_BOTTOM + 0.1, 0.15], [side * 0.36, -0.16, 0.42], [side * 0.36, -0.5, 0.38], legMaterial);
     // Diagonal pairs move together: front-left with back-right, front-right with back-left.
     legs.push({ hip: front, phase: side === -1 ? 0 : Math.PI });
     legs.push({ hip: back, phase: side === -1 ? Math.PI : 0 });
