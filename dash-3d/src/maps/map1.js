@@ -1,6 +1,6 @@
 // The first map. Distances are measured along the road from the start, in units.
 // The first 715 units (about 72 seconds) are written by hand, below. The rest, up to
-// about 7150 units (about 12 minutes), is built by the level generator (generate.js).
+// about 6435 units (about 11 minutes), is built by the level generator (generate.js).
 // (The cube is 1 unit wide. At speed 10, one jump covers about 5.6 units of road
 // and clears at most 3 spikes in a row.)
 // Singles, doubles and triples are mixed, with uneven gaps, so the rhythm is hard to guess.
@@ -139,12 +139,12 @@ const handmade = [
 ];
 
 // The generated rest. Seed 1 always builds exactly the same level.
-const generated = generateMap({ start: 715, end: 7150, seed: 1 });
+const generated = generateMap({ start: 715, end: 6435, seed: 1 });
 
 export default {
   name: "Map 1",
   length: generated.length,   // where the finish line is
-  speed: 10,                  // the normal speed, in units per second; about 12 minutes in all
+  speed: 10,                  // the normal speed, in units per second; about 11 minutes in all
   theme: "purple",            // the colors at the start
   objects: [...handmade, ...generated.objects]
 };

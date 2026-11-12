@@ -45,6 +45,8 @@ Instructions for the game, recorded in the order they were given.
 - Best progress: the best % on each map is saved in the browser and shown under the progress bar, with a marker on the bar (`src/save.js`).
 - `src/audio.js` sets up the browser's sound system once, for both the music and the sound effects.
 - Map 1 is 10 times longer (about 12 minutes). The first 72 seconds are hand-made; the rest is built by the level generator (`src/maps/generate.js`) from tested patterns, with a fixed seed so it's the same every attempt. It gets harder as it goes (smaller gaps, more triples). Spikes share one shape and material, the road is instanced, and only nearby spikes are checked for hits, so the long map stays fast.
+- Map 1 made 10% shorter (about 6435 units, about 11 minutes).
+- The cube spins forward while in the air, like Geometry Dash: a normal jump is exactly a half turn (180°). On landing it snaps to the nearest flat side.
 - Side walls along both edges of the road, taller than the screen, scrolling with the world. They look like the road: panels in the road's two colors, lined up with the road tiles.
 
 ## To do

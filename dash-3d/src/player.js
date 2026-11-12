@@ -22,6 +22,10 @@ const CUBE_SIZE = 1;
 const JUMP_SPEED = 11.6;     // upward speed at the start of a jump (units per second)
 const GRAVITY = 40;          // how fast upward speed drains away (units per second, per second)
 const PAD_SPEED = 15;        // jump pads launch the cube this fast: about 2.8 units high
+// While in the air, the cube spins forward. A normal jump (about 0.58 s) is exactly a half turn.
+const AIR_TIME = (2 * JUMP_SPEED) / GRAVITY;
+const SPIN_SPEED = Math.PI / AIR_TIME;   // radians per second
+const QUARTER_TURN = Math.PI / 2;
 
 // Ship settings.
 const SHIP_THRUST = 30;      // upward pull while jump is held
@@ -99,6 +103,7 @@ export function createPlayer(scene) {
     setOnCeiling(false);
     for (const [name, model] of Object.entries(models)) model.visible = name === mode;
     models.ship.rotation.x = 0;
+    models.cube.rotation.x = 0;
   }
 
   function launch() {
@@ -225,8 +230,17 @@ export function createPlayer(scene) {
   // groundHeight: what the player can stand on right now (0 = road, higher = a raised block).
   // holding: is jump held down (only the ship uses this).
   // hasCeiling: is there a ceiling overhead (only the spider uses this).
+  // Cube: spin forward while in the air; on landing, snap to the nearest flat side.
+  // (Forward is -z, so the spin is a negative turn around the x axis.)
+  function updateCube(dt, groundHeight) {
+    updateFalling(dt, groundHeight);
+    const cube = models.cube;
+    if (onGround) cube.rotation.x = Math.round(cube.rotation.x / QUARTER_TURN) * QUARTER_TURN % (2 * Math.PI);
+    else cube.rotation.x -= SPIN_SPEED * dt;
+  }
+
   function update(dt, groundHeight, holding, hasCeiling) {
-    if (mode === "cube") updateFalling(dt, groundHeight);
+    if (mode === "cube") updateCube(dt, groundHeight);
     else if (mode === "ship") updateShip(dt, groundHeight, holding);
     else if (mode === "spider") updateSpider(dt, groundHeight, hasCeiling);
     else updateUfo(dt, groundHeight);
