@@ -8,12 +8,12 @@
 //   { type: "spike", at, onCeiling: true }   a spike hanging from the ceiling (spider sections)
 //   { type: "orb", at, height }    a jump orb; height is how high its center floats
 //   { type: "block", at, length, height }   a raised road section; "at" is where it starts
-//   { type: "portal", at, mode }   changes the player to "cube", "ship" or "spider".
-//                                  Ship and spider sections get a ceiling, up to the next portal.
+//   { type: "portal", at, mode }   changes the player to "cube", "ship", "spider" or "ufo".
+//                                  Ship, spider and UFO sections get a ceiling, up to the next portal.
 export default {
   name: "Map 1",
-  length: 605,     // where the finish line is
-  speed: 10,       // the normal speed, in units per second; this map takes about 1 minute
+  length: 715,     // where the finish line is
+  speed: 10,       // the normal speed, in units per second; this map takes about 72 seconds
 
   objects: [
     // Easy start: two singles with lots of room, then one double.
@@ -63,7 +63,7 @@ export default {
     { type: "spike", at: 332 },                               // single
     { type: "spike", at: 345 }, { type: "spike", at: 346 },   // double
     { type: "spike", at: 358 },                               // single
-    { type: "spike", at: 372 }, { type: "spike", at: 373 }, { type: "spike", at: 374 },  // triple
+    { type: "spike", at: 373 },                               // single
     { type: "spike", at: 387 },                               // single
 
     // Spider section: press jump to teleport between the road and the ceiling.
@@ -96,6 +96,34 @@ export default {
     // Climb two blocks, then drop down.
     { type: "block", at: 562, length: 8, height: 1 },
     { type: "block", at: 570, length: 6, height: 2 },
-    { type: "spike", at: 588 }                                // last jump
+    { type: "spike", at: 588 },
+
+    // UFO section: tap jump for small boosts to stay in the air.
+    { type: "portal", at: 600, mode: "ufo" },
+    // A long row of road spikes: keep tapping to stay up.
+    { type: "spike", at: 610 }, { type: "spike", at: 611 }, { type: "spike", at: 612 },
+    { type: "spike", at: 613 }, { type: "spike", at: 614 }, { type: "spike", at: 615 },
+    { type: "spike", at: 616 }, { type: "spike", at: 617 },
+    // Spikes above and below: stay in the middle.
+    { type: "spike", at: 625 }, { type: "spike", at: 626 }, { type: "spike", at: 627 },
+    { type: "spike", at: 628 }, { type: "spike", at: 629 }, { type: "spike", at: 630 },
+    { type: "spike", at: 625, onCeiling: true }, { type: "spike", at: 626, onCeiling: true },
+    { type: "spike", at: 627, onCeiling: true }, { type: "spike", at: 628, onCeiling: true },
+    { type: "spike", at: 629, onCeiling: true }, { type: "spike", at: 630, onCeiling: true },
+    // A tall pillar: climb over it.
+    { type: "block", at: 640, length: 3, height: 3 },
+    // Ceiling spikes: come back down.
+    { type: "spike", at: 650, onCeiling: true }, { type: "spike", at: 651, onCeiling: true },
+    { type: "spike", at: 652, onCeiling: true }, { type: "spike", at: 653, onCeiling: true },
+    { type: "spike", at: 654, onCeiling: true }, { type: "spike", at: 655, onCeiling: true },
+    // A low pillar with spikes above it: squeeze through the gap.
+    { type: "block", at: 664, length: 3, height: 2 },
+    { type: "spike", at: 664, onCeiling: true }, { type: "spike", at: 665, onCeiling: true },
+    { type: "spike", at: 666, onCeiling: true },
+    // One more tall pillar.
+    { type: "block", at: 676, length: 3, height: 3 },
+    { type: "portal", at: 690, mode: "cube" },
+
+    { type: "spike", at: 702 }                                // last jump
   ]
 };

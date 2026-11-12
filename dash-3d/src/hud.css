@@ -1,0 +1,78 @@
+/* The HUD: text and bars drawn over the 3D view. */
+
+.hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;           /* clicks go through to the game */
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Progress bar along the top, with the percentage beside it. */
+.hud-progress {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, 60vw);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hud-progress-track {
+  flex: 1;
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+}
+
+.hud-progress-fill {
+  width: 0%;
+  height: 100%;
+  background: #33ccff;
+}
+
+.hud-progress-text {
+  min-width: 3.5em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;   /* digits all the same width, so it doesn't wobble */
+}
+
+/* Attempt counter in the top-left corner. */
+.hud-attempt {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Big message in the middle of the screen, like "Level complete!". */
+.hud-message {
+  position: absolute;
+  top: 38%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: clamp(32px, 7vw, 64px);
+  font-weight: 800;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+.hud-message.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.hud-message small {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.4em;
+  font-weight: 600;
+}

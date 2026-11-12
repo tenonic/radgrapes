@@ -5,13 +5,12 @@
 // Sizes: about 1.65 long (z from -0.8 at the nose to 0.85 at the engine),
 // and about 0.7 tall (y from -0.35 to 0.35), centered on its middle.
 import * as THREE from "three";
+import { withOutline, toon } from "./outline.js";
 
 const BODY_COLOR = 0x2244dd;
 const TRIM_COLOR = 0x44cc44;      // nose and fins
 const WINDOW_COLOR = 0x99ff77;
 const ENGINE_COLOR = 0x222233;
-const OUTLINE_COLOR = 0x111122;
-const OUTLINE_SCALE = 1.08;       // how much bigger the outline shell is than the part
 
 const BODY_FRONT_RADIUS = 0.28;
 const BODY_BACK_RADIUS = 0.22;
@@ -19,23 +18,6 @@ const BODY_LENGTH = 1.0;
 const BODY_Z = 0.2;               // the body runs from z = -0.3 (front) to z = 0.7 (back)
 const NOSE_LENGTH = 0.5;
 const RIDER_SIZE = 0.3;
-
-// Cartoon-style shading: flat bands of light instead of smooth gradients.
-function toon(color, glow = 0) {
-  return new THREE.MeshToonMaterial({ color, emissive: color, emissiveIntensity: glow });
-}
-
-// A dark outline: a slightly bigger copy of the part, showing only its inside faces,
-// so it peeks out around the edges like a drawn outline.
-function withOutline(mesh) {
-  const outline = new THREE.Mesh(
-    mesh.geometry,
-    new THREE.MeshBasicMaterial({ color: OUTLINE_COLOR, side: THREE.BackSide })
-  );
-  outline.scale.setScalar(OUTLINE_SCALE);
-  mesh.add(outline);
-  return mesh;
-}
 
 // Main body: a tube, a little narrower at the back.
 function createBody() {

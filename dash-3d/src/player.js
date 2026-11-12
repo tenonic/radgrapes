@@ -3,9 +3,11 @@
 // - "cube": jumps, lands on raised blocks, falls back down.
 // - "ship": flies up while jump is held, drifts down when it's let go.
 // - "spider": a jump press teleports it between the road and the ceiling.
+// - "ufo": every jump press gives a small boost up, even in mid-air.
 import * as THREE from "three";
 import { createShipModel } from "./models/ship.js";
 import { createSpiderModel } from "./models/spider.js";
+import { createUfoModel } from "./models/ufo.js";
 import { CEILING_HEIGHT } from "./config.js";
 
 const COLOR = 0x33ccff;
@@ -25,14 +27,20 @@ const SHIP_GRAVITY = 30;     // downward pull while it's not
 const SHIP_MAX_SPEED = 8;    // fastest it can move up or down
 const SHIP_TILT = 0.06;      // how much the nose tips up or down with the speed (just for looks)
 
+// UFO settings. Each boost lifts it about 0.8 units, so climbing takes several taps.
+const UFO_BOOST = 7;         // upward speed right after a tap
+const UFO_GRAVITY = 30;      // how fast it falls between taps
+const UFO_MAX_FALL = 10;     // fastest it can fall
+
 // Hitbox half-sizes for each mode (a little smaller than the model, so hits are fair).
 const HALF_SIZE = {
   cube: { x: 0.45, y: 0.45, z: 0.45 },
   ship: { x: 0.4, y: 0.3, z: 0.75 },
-  spider: { x: 0.45, y: 0.45, z: 0.45 }
+  spider: { x: 0.45, y: 0.45, z: 0.45 },
+  ufo: { x: 0.6, y: 0.42, z: 0.6 }
 };
 // Half-height of the model, used to place its bottom (or top) exactly on a surface.
-const HALF_HEIGHT = { cube: CUBE_SIZE / 2, ship: 0.35, spider: 0.5 };
+const HALF_HEIGHT = { cube: CUBE_SIZE / 2, ship: 0.35, spider: 0.5, ufo: 0.5 };
 
 // The cube is semi-transparent, so you can see the road through it.
 function createCubeMaterial() {
@@ -51,12 +59,13 @@ export function createPlayer(scene) {
   const models = {
     cube: createCubeModel(),
     ship: createShipModel(createCubeMaterial()),
-    spider: createSpiderModel(createCubeMaterial())
+    spider: createSpiderModel(COLOR),
+    ufo: createUfoModel(COLOR, createCubeMaterial())
   };
 
   // "body" is what moves up and down; it holds every model and shows one at a time.
   const body = new THREE.Group();
-  body.add(models.cube, models.ship, models.spider);
+  body.add(...Object.values(models));
   scene.add(body);
 
   let mode = "cube";
@@ -103,6 +112,11 @@ export function createPlayer(scene) {
   // A jump from an orb: works anywhere, even in mid-air.
   function orbJump() {
     if (mode === "cube") launch();
+  }
+
+  // UFO: a small boost up. Works any time, even in mid-air.
+  function flap() {
+    if (mode === "ufo") velocityY = UFO_BOOST;
   }
 
   // Spider: teleport to the opposite surface. Only works while touching a surface.
@@ -167,6 +181,8 @@ export function createPlayer(scene) {
   // Spider: on the ceiling it stays put (if the ceiling ends, it drops).
   // Right side up, it falls and lands like the cube, but never jumps.
   function updateSpider(dt, groundHeight, hasCeiling) {
+    if (onGround) models.spider.userData.animate(dt);   // legs walk only while touching a surface
+
     if (onCeiling) {
       if (hasCeiling) return;
       setOnCeiling(false);
@@ -176,13 +192,30 @@ export function createPlayer(scene) {
     updateFalling(dt, groundHeight);
   }
 
+  // UFO: gravity pulls it down between taps. It rests on the ground and stops at the ceiling.
+  function updateUfo(dt, groundHeight) {
+    velocityY = Math.max(velocityY - UFO_GRAVITY * dt, -UFO_MAX_FALL);
+    body.position.y += velocityY * dt;
+
+    if (getBottom() <= groundHeight) {
+      setBottom(groundHeight);
+      velocityY = Math.max(velocityY, 0);
+    }
+    const top = body.position.y + HALF_HEIGHT.ufo;
+    if (top >= CEILING_HEIGHT) {
+      body.position.y = CEILING_HEIGHT - HALF_HEIGHT.ufo;
+      velocityY = Math.min(velocityY, 0);
+    }
+  }
+
   // groundHeight: what the player can stand on right now (0 = road, higher = a raised block).
   // holding: is jump held down (only the ship uses this).
   // hasCeiling: is there a ceiling overhead (only the spider uses this).
   function update(dt, groundHeight, holding, hasCeiling) {
     if (mode === "cube") updateFalling(dt, groundHeight);
     else if (mode === "ship") updateShip(dt, groundHeight, holding);
-    else updateSpider(dt, groundHeight, hasCeiling);
+    else if (mode === "spider") updateSpider(dt, groundHeight, hasCeiling);
+    else updateUfo(dt, groundHeight);
   }
 
   // Back to a cube on the road, standing still.
@@ -208,5 +241,5 @@ export function createPlayer(scene) {
   }
 
   reset();
-  return { jump, orbJump, flip, setMode, getMode, update, reset, getBottom, getHitbox };
+  return { jump, orbJump, flip, flap, setMode, getMode, update, reset, getBottom, getHitbox };
 }

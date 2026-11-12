@@ -5,12 +5,15 @@ import { createCamera } from "./camera.js";
 import { createPlayer } from "./player.js";
 import { createWorld } from "./world.js";
 import { createRoad } from "./road.js";
+import { createWalls } from "./walls.js";
 import { createObstacles } from "./obstacles.js";
 import { createOrbs } from "./orbs.js";
 import { createBlocks } from "./blocks.js";
 import { createPortals } from "./portals.js";
 import { createCeilings } from "./ceilings.js";
 import { createInput } from "./input.js";
+import { createMusic } from "./music.js";
+import { createHud } from "./hud.js";
 import { touching } from "./collision.js";
 import { CRASH_PAUSE, FINISH_PAUSE } from "./config.js";
 import map from "./maps/map1.js";
@@ -20,6 +23,7 @@ const camera = createCamera();
 const player = createPlayer(scene);
 const world = createWorld(scene);
 createRoad(world.group, map.length);
+createWalls(world.group, map.length);
 const objectsOfType = (type) => map.objects.filter((o) => o.type === type);
 const obstacles = createObstacles(world.group, objectsOfType("spike"));
 const orbs = createOrbs(world.group, objectsOfType("orb"));
@@ -27,6 +31,9 @@ const blocks = createBlocks(world.group, objectsOfType("block"));
 const portals = createPortals(world.group, objectsOfType("portal"));
 const ceilings = createCeilings(world.group, objectsOfType("portal"), map.length);
 const input = createInput();
+const music = createMusic();
+const hud = createHud();
+input.onKeyPress("KeyM", music.toggle);   // M turns the music on and off
 
 // Keep the picture the right shape when the window is resized.
 window.addEventListener("resize", () => {
@@ -38,12 +45,20 @@ window.addEventListener("resize", () => {
 // Seconds left in a pause (after a crash or a finish). 0 means the run is going.
 let pauseTimeLeft = 0;
 
+// Which try this is. Goes up by one every time the map starts over.
+let attempt = 1;
+hud.setAttempt(attempt);
+
 // Start the map over from the beginning.
 function restart() {
+  attempt++;
+  hud.setAttempt(attempt);
+  hud.hideMessage();
   player.reset();
   world.reset();
   orbs.reset();
   portals.reset();
+  music.start();
 }
 
 // What the player can stand on right now: the road, or the top of a raised block.
@@ -54,9 +69,14 @@ function groundHeightUnderPlayer() {
 // What a jump press does depends on the mode:
 // - cube: use an orb if touching one, otherwise a normal jump.
 // - spider: teleport between the road and the ceiling.
+// - ufo: a small boost up.
 // - ship: nothing (it flies by holding).
 function handleJump() {
   const mode = player.getMode();
+  if (mode === "ufo") {
+    player.flap();
+    return;
+  }
   if (mode === "spider") {
     player.flip(groundHeightUnderPlayer(), ceilings.isCeilingAt(world.getDistance()));
     return;
@@ -110,13 +130,19 @@ function loop() {
 
     if (playerCrashed()) {
       pauseTimeLeft = CRASH_PAUSE;
+      music.stop();
     } else if (world.getDistance() >= map.length) {
       pauseTimeLeft = FINISH_PAUSE;   // made it to the finish line
+      music.stop();
+      hud.showMessage("Level complete!", `in ${attempt} ${attempt === 1 ? "attempt" : "attempts"}`);
     }
+
+    hud.setProgress(world.getDistance() / map.length);
   }
 
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
 
+music.start();
 loop();

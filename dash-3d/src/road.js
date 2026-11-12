@@ -3,10 +3,11 @@
 // A distance "d" along the road is at z = -d (forward is the -z direction).
 import * as THREE from "three";
 
-const TILE_LENGTH = 4;
+// Shared with walls.js, so the walls match the road.
+export const TILE_LENGTH = 4;
+export const COLORS = [0x5a2d82, 0x3d1d5c];
+export const EXTRA_BEHIND = 12;   // road behind the start line, so the camera sees road under it
 const TILE_WIDTH = 6;
-const COLORS = [0x5a2d82, 0x3d1d5c];
-const EXTRA_BEHIND = 12;   // road behind the start line, so the camera sees road under it
 
 export function createRoad(parent, length) {
   const geometry = new THREE.BoxGeometry(TILE_WIDTH, 0.2, TILE_LENGTH);

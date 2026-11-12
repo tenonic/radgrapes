@@ -34,9 +34,14 @@ Instructions for the game, recorded in the order they were given.
 - Step 7: ship portals. Passing through a portal with `mode: "ship"` turns the cube into a ship; `mode: "cube"` turns it back. The ship flies up while jump is held and drifts down when it's let go. It can't go above a ceiling (height 5), slides along the road, and still crashes into spikes and block fronts. Listed in the map as `{ type: "portal", at, mode }`.
 - Step 8: spider portals (`mode: "spider"`). Pressing jump teleports the spider instantly between the road and the ceiling, only while touching one. Ship and spider sections get a visible ceiling at height 5. Spikes can hang from the ceiling: `{ type: "spike", at, onCeiling: true }`.
 - Map 1 is now about 1 minute long, with cube, ship and spider sections.
+- Step 9: UFO portals (`mode: "ufo"`). Every jump press gives a small boost up, even in mid-air; gravity pulls it down between taps. UFO sections get a ceiling. The model is a flying saucer with the cube in a glass dome. Map 1 now ends with a UFO section (about 72 seconds long).
+- New models from the user's pictures: a cartoon rocket-ship, a UFO with a tall glass dome (cube's blue, no lights), and a blocky spider with one forward-facing eye and walking claw legs.
+- Music: an original electronic song made in code (Web Audio API, no music file), in `src/music.js`. It starts from the beginning with every run and stops on a crash or at the finish, so the same part always plays at the same place. Different parts for the ship, spider and UFO sections. Press M to turn it on or off. Browsers only allow sound after the first click or key press.
+- HUD (`src/hud.js`, `src/hud.css`): a progress bar with a percentage at the top, an attempt counter in the top-left (goes up every time the map restarts), and a "Level complete!" message at the finish (3-second pause).
+- Side walls along both edges of the road, taller than the screen, scrolling with the world. They look like the road: panels in the road's two colors, lined up with the road tiles.
 
 ## To do
 
-- Add more portal types (spider is done).
+- Add more portal types (ship, spider and UFO are done).
 
 - Set up auto-reload: install the VS Code "Live Server" extension (by Ritwick Dey), then right-click `index.html` and choose "Open with Live Server". It serves on port 5500, so stop the Python server once it's working.

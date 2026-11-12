@@ -2,6 +2,7 @@
 // Two ways to read them:
 // - consumeJump(): was jump pressed since last frame? (one press = one jump, used by the cube)
 // - isHeld(): is jump being held down right now? (used by the ship to fly up)
+// Other keys can be given their own action with onKeyPress(code, action).
 
 const JUMP_KEYS = ["Space", "ArrowUp", "KeyW"];
 
@@ -46,5 +47,12 @@ export function createInput() {
     return keysDown.size > 0 || pointerDown;
   }
 
-  return { consumeJump, isHeld };
+  // Run "action" whenever the key with this code (like "KeyM") is pressed.
+  function onKeyPress(code, action) {
+    window.addEventListener("keydown", (event) => {
+      if (event.code === code && !event.repeat) action();
+    });
+  }
+
+  return { consumeJump, isHeld, onKeyPress };
 }

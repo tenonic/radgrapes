@@ -1,9 +1,9 @@
-// Ceilings: a roof over the road in ship and spider sections.
-// A section starts at a ship or spider portal and ends at the next portal (or the finish).
+// Ceilings: a roof over the road in ship, spider and UFO sections.
+// A section starts at one of those portals and ends at the next portal (or the finish).
 import * as THREE from "three";
 import { CEILING_HEIGHT } from "./config.js";
 
-const MODES_WITH_CEILING = ["ship", "spider"];
+const MODES_WITH_CEILING = ["ship", "spider", "ufo"];
 const WIDTH = 6;               // as wide as the road
 const THICKNESS = 0.2;
 const OVERHANG = 2;            // the roof starts a little before the portal and ends a little after
