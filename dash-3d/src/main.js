@@ -22,7 +22,12 @@ import { createThemes } from "./themes.js";
 import { loadBest, saveBest } from "./save.js";
 import { touching } from "./collision.js";
 import { CRASH_PAUSE, FINISH_PAUSE } from "./config.js";
-import map from "./maps/map1.js";
+import { LEVELS } from "./maps/levels.js";
+
+// Show the level selection screen and wait for a level to be picked.
+const menu = createMenu(LEVELS);
+const level = await menu.pickLevel();
+const map = { ...(await level.load()).default, name: level.name };
 
 const { scene, renderer } = createScene();
 const camera = createCamera();
@@ -40,10 +45,10 @@ const ceilings = createCeilings(world.group, objectsOfType("portal"), map.length
 const themes = createThemes(map.theme, objectsOfType("colors"));
 const effects = createEffects(scene, camera);
 const input = createInput();
-const music = createMusic();
+const music = createMusic(map.song);
 const hud = createHud();
-const menu = createMenu(map.name);
 input.onKeyPress("KeyM", music.toggle);   // M turns the music on and off
+input.onKeyPress("Escape", () => location.reload());   // Esc goes back to the level selection screen
 
 // Keep the picture the right shape when the window is resized.
 window.addEventListener("resize", () => {
@@ -51,9 +56,6 @@ window.addEventListener("resize", () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
-
-// The game waits on the start menu until the first jump press.
-let started = false;
 
 // Seconds left in a pause (after a crash or a finish). 0 means the run is going.
 let pauseTimeLeft = 0;
@@ -188,14 +190,7 @@ function loop() {
   const dt = Math.min(clock.getDelta(), 0.1);  // cap it, so a slow frame doesn't cause a big jump
   const jumpPressed = input.consumeJump();     // read every frame, so presses during a pause are thrown away
 
-  if (!started) {
-    // On the start menu: the first press starts the game (it doesn't count as a jump).
-    if (jumpPressed) {
-      started = true;
-      menu.hide();
-      music.start();
-    }
-  } else if (pauseTimeLeft > 0) {
+  if (pauseTimeLeft > 0) {
     // Paused after a crash or finish: wait, then restart.
     pauseTimeLeft -= dt;
     if (pauseTimeLeft <= 0) {
@@ -207,10 +202,11 @@ function loop() {
   }
 
   effects.update(dt);
-  orbs.update(dt);   // the orbs' and pads' glow pulses all the time, even on the menu
+  orbs.update(dt);   // the orbs' and pads' glow pulses all the time, even during pauses
   pads.update(dt);
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
 
+music.start();   // the level was picked with a click or key press, so sound is allowed
 loop();

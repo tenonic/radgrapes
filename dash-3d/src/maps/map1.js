@@ -15,8 +15,9 @@
 //   { type: "portal", at, mode }   changes the player to "cube", "ship", "spider" or "ufo".
 //                                  Ship, spider and UFO sections get a ceiling, up to the next portal.
 //   { type: "colors", at, theme }  fades the sky, road, walls and blocks into a new color theme
-//                                  (purple, teal, blue, green or orange; see themes.js).
+//                                  (purple, teal, blue, green, orange or crimson; see themes.js).
 import { generateMap } from "./generate.js";
+import song from "../songs/song1.js";
 
 // The hand-made first part.
 const handmade = [
@@ -146,5 +147,6 @@ export default {
   length: generated.length,   // where the finish line is
   speed: 10,                  // the normal speed, in units per second; about 11 minutes in all
   theme: "purple",            // the colors at the start
+  song,
   objects: [...handmade, ...generated.objects]
 };

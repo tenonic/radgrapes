@@ -10,7 +10,8 @@ const THEMES = {
   teal:   { sky: 0x0b262e, road: [0x2d7482, 0x1d515c], block: 0x4fc0d1 },
   blue:   { sky: 0x0b142e, road: [0x2d4a82, 0x1d335c], block: 0x4f7fd1 },
   green:  { sky: 0x0b2e18, road: [0x2d824e, 0x1d5c35], block: 0x4fd17f },
-  orange: { sky: 0x2e180b, road: [0x82522d, 0x5c381d], block: 0xd1884f }
+  orange: { sky: 0x2e180b, road: [0x82522d, 0x5c381d], block: 0xd1884f },
+  crimson: { sky: 0x2e0b12, road: [0x822d3e, 0x5c1d2a], block: 0xd14f68 }
 };
 
 // How much road it takes to fade from one theme to the next (10 units = 1 second at speed 10).

@@ -9,6 +9,7 @@
   justify-content: center;
   gap: 12px;
   padding: 16px;
+  overflow-y: auto;
   background: rgba(10, 4, 20, 0.7);
   color: #fff;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -55,4 +56,80 @@
 
 @keyframes pulse {
   50% { opacity: 0.4; }
+}
+
+/* The level cards. */
+
+.menu-levels {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+  max-width: 100%;
+}
+
+.menu-level {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "number name"
+    "number difficulty"
+    "number best";
+  column-gap: 14px;
+  align-items: center;
+  width: 220px;
+  max-width: 100%;
+  padding: 14px 18px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.menu-level:not(:disabled):hover,
+.menu-level:not(:disabled):focus-visible {
+  transform: scale(1.05);
+  border-color: #33ccff;
+  background: rgba(51, 204, 255, 0.15);
+  outline: none;
+}
+
+.menu-level:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.menu-level-number {
+  grid-area: number;
+  font-size: 40px;
+  font-weight: 900;
+  color: #33ccff;
+}
+
+.menu-level-name {
+  grid-area: name;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.menu-level-difficulty {
+  grid-area: difficulty;
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.menu-level-difficulty.harder { color: #ff5555; }
+.menu-level-difficulty.insane { color: #ff44dd; }
+
+.menu-level-best {
+  grid-area: best;
+  font-size: 14px;
+  opacity: 0.75;
 }

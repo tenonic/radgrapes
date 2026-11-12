@@ -1,84 +1,39 @@
-// Music: an original electronic song, made in code with the browser's Web Audio API
+// Music: plays a map's original song, made in code with the browser's Web Audio API
 // (no music file). Smooth modern synths (detuned, filtered waves) with a bit of reverb,
-// rather than retro "chiptune" square waves.
+// rather than retro "chiptune" square waves. The songs themselves are in src/songs/.
 //
 // The song is tied to the run: it starts from the beginning when a run starts, and
 // stops when the player crashes or finishes. So the same part of the song always
 // plays at the same place in the map.
 //
-// How the song is written:
+// How a song is written (see src/songs/song1.js):
 // - A "step" is a 16th note. At 120 beats per minute, one step is 0.125 seconds.
-// - A "section" is 4 bars (64 steps, 8 seconds), with one chord per bar and
-//   (optionally) a melody.
-// - The ARRANGEMENT lists the sections in order and which instruments play in each.
-//   9 sections = 72 seconds, about as long as Map 1. After that, it loops.
+// - A "section" is 4 bars (64 steps), with one chord per bar and (optionally) a melody.
+// - The arrangement lists the sections in order and which instruments play in each.
+//   After the last one, the song loops.
 
 import { onAudioReady, getNoise } from "./audio.js";
 
-const BPM = 120;
-const STEP = 60 / BPM / 4;                 // seconds per step
-const SECTION_STEPS = 64;
+const SECTION_STEPS = 64;                  // 4 bars of 16 steps
 const VOLUME = 0.5;
 const REVERB_AMOUNT = 0.12;                // how much echo of the room is mixed in
 const REVERB_SECONDS = 1.2;                // how long the echo lasts
-
-const _ = null;                            // a rest (no new note)
-
-// Chords: [bass note as a MIDI number, "m" for minor or "M" for major].
-const Em = [40, "m"], C = [36, "M"], G = [43, "M"], D = [38, "M"], Bm = [35, "m"];
-
-// Melody notes are MIDI numbers (64 = E4, 67 = G4, 71 = B4, 76 = E5, ...).
-const SECTIONS = {
-  // The main tune.
-  A: {
-    chords: [Em, C, G, D],
-    melody: [
-      76, _, _, 74,  71, _, 67, _,  71, _, 74, _,  76, _, _, _,
-      72, _, _, 71,  67, _, 64, _,  67, _, 71, _,  72, _, 74, _,
-      74, _, _, 71,  67, _, 71, _,  74, _, 79, _,  78, _, 76, _,
-      74, _, _, _,   73, _, 74, _,  78, _, _, _,   74, _, _, _
-    ]
-  },
-  // Higher and brighter: plays during the flying parts.
-  B: {
-    chords: [C, D, Bm, Em],
-    melody: [
-      79, _, 76, _,  79, _, 81, _,  79, _, 76, _,  72, _, _, _,
-      81, _, 78, _,  81, _, 83, _,  81, _, 78, _,  74, _, _, _,
-      83, _, _, 81,  78, _, _, _,   74, _, 78, _,  81, _, 83, _,
-      79, _, _, _,   76, _, _, _,   71, _, 74, _,  76, _, _, _
-    ]
-  },
-  // No melody, just chords: used for the intro.
-  INTRO: { chords: [Em, C, G, D], melody: null },
-  // Choppy chord stabs instead of a melody: plays during the spider part.
-  STABS: { chords: [Em, Em, C, D], melody: null }
-};
-
-// Instruments: lead, pluck, arp, stab, pad, bass, kick, snare, clap, hat, shaker, crash.
-const ALL = "lead pluck arp pad bass kick snare clap hat shaker crash";
-const ARRANGEMENT = [
-  { section: "INTRO", play: "pad arp bass hat" },                                   // 0-8 s
-  { section: "A",     play: "lead pad bass kick hat shaker crash" },                // 8-16 s
-  { section: "A",     play: "lead pluck arp pad bass kick snare clap hat" },        // 16-24 s
-  { section: "B",     play: ALL },                                                  // 24-32 s: ship
-  { section: "A",     play: "lead pluck pad bass kick snare hat shaker crash" },    // 32-40 s
-  { section: "STABS", play: "stab pad bass kick hat shaker crash" },                // 40-48 s: spider
-  { section: "STABS", play: "stab pluck arp bass kick snare clap hat shaker" },     // 48-56 s
-  { section: "B",     play: ALL },                                                  // 56-64 s: UFO
-  { section: "A",     play: ALL }                                                   // 64-72 s: to the finish
-];
-
-// The pluck's pattern within each bar: which step it plays on, and which chord note.
-const PLUCK_PATTERN = { 0: 0, 3: 1, 6: 2, 10: 1, 12: 3 };
-const SONG_STEPS = ARRANGEMENT.length * SECTION_STEPS;
 
 // Turn a MIDI note number into a frequency in Hz.
 function noteToHz(n) {
   return 440 * Math.pow(2, (n - 69) / 12);
 }
 
-export function createMusic() {
+// The pluck's pattern within each bar: which step it plays on, and which chord note.
+const PLUCK_PATTERN = { 0: 0, 3: 1, 6: 2, 10: 1, 12: 3 };
+
+// song: one of the songs in src/songs/ ({ bpm, sections, arrangement }).
+export function createMusic(song) {
+  const STEP = 60 / song.bpm / 4;          // seconds per step
+  const SECTIONS = song.sections;
+  const ARRANGEMENT = song.arrangement;
+  const SONG_STEPS = ARRANGEMENT.length * SECTION_STEPS;
+
   let audio = null;        // the browser's audio system (see audio.js); ready after the first click or key press
   let master = null;       // overall volume (0 when music is turned off)
   let runVolume = null;    // volume for the current run; faded out to stop the song

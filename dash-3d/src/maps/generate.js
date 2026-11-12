@@ -5,10 +5,10 @@
 // numbers, so the generated level is exactly the same on every attempt.
 //
 // Spacing rules (at speed 10, one jump covers about 5.8 units):
-// - Spike groups are 1 to 3 spikes, with at least 11 units after the last spike.
+// - Spike groups are 1 to 3 spikes, with room after the last spike to land and react.
 // - Every pattern leaves room to land before the next one starts.
-// - Gaps shrink a little and triples get a little more common as the level goes on,
-//   but it stays gentle: triples only appear in the second half, and not often.
+// - Gaps shrink a little as the level goes on.
+// How hard it is comes from a "profile" (see PROFILES below).
 
 // A small, well-known seeded random number generator ("mulberry32").
 // Returns a function that gives a new number from 0 up to (not including) 1 each call.
@@ -24,12 +24,35 @@ function createRandom(seed) {
 }
 
 const MODE_THEMES = { ship: "teal", spider: "green", ufo: "orange" };
-const CUBE_THEMES = ["blue", "purple"];
+
+// How hard the generated level is.
+// - gap: room after a spike group at the start, [min, max]; it shrinks by "shrink" toward the end.
+// - singleChance: how often a spike group is a single (otherwise a double).
+// - tripleFrom, tripleChance: past this point (0 = start, 1 = end), a group becomes
+//   a triple this often.
+// - cubeTighten: how much less room is left after orb rows, pads and stairs.
+// - modeTighten: how much less room is left between ship, spider and UFO obstacles.
+// - stretch: how long each cube part is, [min, max], between ship, spider and UFO sections.
+// - finalRoom: no new ship/spider/UFO section starts this close to the end.
+// - cubeThemes: the colors used for the cube parts, in turn.
+export const PROFILES = {
+  harder: {
+    gap: [14, 17], shrink: 3, singleChance: 0.6, tripleFrom: 0.5, tripleChance: 0.1,
+    cubeTighten: 0, modeTighten: 0, stretch: [200, 280], finalRoom: 250,
+    cubeThemes: ["blue", "purple"]
+  },
+  insane: {
+    gap: [11, 14], shrink: 3, singleChance: 0.35, tripleFrom: -1, tripleChance: 0.3,
+    cubeTighten: 2, modeTighten: 3, stretch: [100, 150], finalRoom: 150,
+    cubeThemes: ["purple", "crimson"]
+  }
+};
 
 // start: where the generated part begins. end: roughly where it should finish.
-// seed: which version of the level to build.
+// seed: which version of the level to build. profile: how hard it is (see PROFILES).
 // Returns { objects, length } where length is the finish line.
-export function generateMap({ start, end, seed }) {
+export function generateMap({ start, end, seed, profile = PROFILES.harder }) {
+  const p = profile;
   const random = createRandom(seed);
   const between = (min, max) => min + Math.floor(random() * (max - min + 1));   // whole number, min to max
   const chance = (probability) => random() < probability;
@@ -49,18 +72,22 @@ export function generateMap({ start, end, seed }) {
   // 0 at the start of the generated part, 1 at the end.
   const difficulty = () => Math.min((cursor - start) / (end - start), 1);
 
-  // Room after a spike group: 14-17 units at first, down to 11-14 near the end.
+  // Room after a spike group: the profile's gap at first, shrinking toward the end.
   const gap = () => {
-    const shrink = Math.round(3 * difficulty());
-    return between(14 - shrink, 17 - shrink);
+    const shrink = Math.round(p.shrink * difficulty());
+    return between(p.gap[0] - shrink, p.gap[1] - shrink);
   };
+  // Room after orb rows, pads and stairs.
+  const cubeRoom = () => between(10 - p.cubeTighten, 13 - p.cubeTighten);
+  // Room between ship, spider and UFO obstacles: "min" is the easiest (harder) value.
+  const modeRoom = (min) => between(min - p.modeTighten, min + 3 - p.modeTighten);
 
   // ---------- Cube patterns ----------
 
-  // 1 to 3 spikes in a row. Mostly singles; triples only in the second half, and rarely.
+  // 1 to 3 spikes in a row.
   function spikeGroup() {
-    let count = chance(0.6) ? 1 : 2;
-    if (difficulty() > 0.5 && chance(0.1)) count = 3;
+    let count = chance(p.singleChance) ? 1 : 2;
+    if (difficulty() > p.tripleFrom && chance(p.tripleChance)) count = 3;
     spikeRow(cursor, count);
     cursor += count - 1 + gap();
   }
@@ -76,14 +103,14 @@ export function generateMap({ start, end, seed }) {
   function padBlock() {
     objects.push({ type: "pad", at: cursor + 1 });
     block(cursor + 5, 8, 2);
-    cursor += 13 + between(10, 13);
+    cursor += 13 + cubeRoom();
   }
 
   // Two blocks like stairs: jump onto the low one, then the high one, then drop down.
   function stairs() {
     block(cursor + 3, 10, 1);
     block(cursor + 13, 8, 2);
-    cursor += 21 + between(10, 13);
+    cursor += 21 + cubeRoom();
   }
 
   // A stretch of cube patterns, mostly spike groups.
@@ -107,18 +134,18 @@ export function generateMap({ start, end, seed }) {
       const kind = pick(["pillar", "roadRow", "ceilingRow", "squeeze"]);
       if (kind === "pillar") {
         block(cursor, 3, pick([2, 3]));
-        cursor += 3 + between(13, 16);
+        cursor += 3 + modeRoom(13);
       } else if (kind === "roadRow") {
         spikeRow(cursor, 8);
-        cursor += 7 + between(12, 15);
+        cursor += 7 + modeRoom(12);
       } else if (kind === "ceilingRow") {
         spikeRow(cursor, 6, ceilingSpike);
-        cursor += 5 + between(12, 15);
+        cursor += 5 + modeRoom(12);
       } else {
         // A low pillar with spikes above it: fly through the gap between them.
         block(cursor, 3, 2);
         spikeRow(cursor, 3, ceilingSpike);
-        cursor += 2 + between(13, 16);
+        cursor += 2 + modeRoom(13);
       }
     }
   }
@@ -131,7 +158,7 @@ export function generateMap({ start, end, seed }) {
       if (chance(0.75)) onCeiling = !onCeiling;   // usually switch sides
       const length = between(2, 4);
       spikeRow(cursor, length, onCeiling ? ceilingSpike : spike);
-      cursor += length - 1 + between(12, 15);     // plenty of time to teleport
+      cursor += length - 1 + modeRoom(12);     // time to teleport
     }
   }
 
@@ -142,21 +169,21 @@ export function generateMap({ start, end, seed }) {
       const kind = pick(["roadRow", "corridor", "pillar", "ceilingRow", "squeeze"]);
       if (kind === "roadRow") {
         spikeRow(cursor, 8);
-        cursor += 7 + between(12, 15);
+        cursor += 7 + modeRoom(12);
       } else if (kind === "corridor") {
         spikeRow(cursor, 6);
         spikeRow(cursor, 6, ceilingSpike);
-        cursor += 5 + between(12, 15);
+        cursor += 5 + modeRoom(12);
       } else if (kind === "pillar") {
         block(cursor, 3, 3);
-        cursor += 3 + between(13, 16);
+        cursor += 3 + modeRoom(13);
       } else if (kind === "ceilingRow") {
         spikeRow(cursor, 6, ceilingSpike);
-        cursor += 5 + between(12, 15);
+        cursor += 5 + modeRoom(12);
       } else {
         block(cursor, 3, 2);
         spikeRow(cursor, 3, ceilingSpike);
-        cursor += 2 + between(13, 16);
+        cursor += 2 + modeRoom(13);
       }
     }
   }
@@ -175,7 +202,7 @@ export function generateMap({ start, end, seed }) {
 
     cursor += 4;
     objects.push({ type: "portal", at: cursor, mode: "cube" });
-    objects.push({ type: "colors", at: cursor, theme: CUBE_THEMES[cubeTheme++ % CUBE_THEMES.length] });
+    objects.push({ type: "colors", at: cursor, theme: p.cubeThemes[cubeTheme++ % p.cubeThemes.length] });
     cursor += 12;                       // room to fall back to the road as a cube
   }
 
@@ -183,9 +210,9 @@ export function generateMap({ start, end, seed }) {
 
   const modes = ["ship", "spider", "ufo"];
   let modeIndex = 0;
-  while (cursor < end - 250) {
-    cubeStretch(between(200, 280));
-    if (cursor < end - 250) modeSection(modes[modeIndex++ % modes.length]);
+  while (cursor < end - p.finalRoom) {
+    cubeStretch(between(p.stretch[0], p.stretch[1]));
+    if (cursor < end - p.finalRoom) modeSection(modes[modeIndex++ % modes.length]);
   }
   cubeStretch(Math.max(end - cursor - 20, 30));   // one last cube stretch to the finish
 
