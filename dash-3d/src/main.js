@@ -207,6 +207,8 @@ function loop() {
   }
 
   effects.update(dt);
+  orbs.update(dt);   // the orbs' and pads' glow pulses all the time, even on the menu
+  pads.update(dt);
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
