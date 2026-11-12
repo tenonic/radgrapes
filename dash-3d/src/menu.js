@@ -28,7 +28,8 @@ export function createMenu(levels) {
         const card = document.createElement("button");
         card.className = "menu-level";
         card.disabled = !level.load;
-        const difficultyClass = level.difficulty.toLowerCase();
+        // The CSS class for the difficulty's color ("???" becomes "unknown").
+        const difficultyClass = /^\w+$/.test(level.difficulty) ? level.difficulty.toLowerCase() : "unknown";
         card.innerHTML = `
           <span class="menu-level-number">${index + 1}</span>
           <span class="menu-level-name"></span>

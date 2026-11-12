@@ -1,8 +1,8 @@
 // Portals: tall glowing gates on the road. Passing through one changes the
-// player's mode ("cube", "ship", "spider" or "ufo").
+// player's mode ("cube", "ship", "spider", "ufo" or "wave").
 import * as THREE from "three";
 
-const COLORS = { cube: 0x55ff88, ship: 0xff55cc, spider: 0xaa66ff, ufo: 0xffaa33 };
+const COLORS = { cube: 0x55ff88, ship: 0xff55cc, spider: 0xaa66ff, ufo: 0xffaa33, wave: 0x33ffee };
 
 // An upright oval ring, standing on the road.
 function createGate(mode) {

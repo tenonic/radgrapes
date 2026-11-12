@@ -4,10 +4,12 @@
 // - "ship": flies up while jump is held, drifts down when it's let go.
 // - "spider": a jump press teleports it between the road and the ceiling.
 // - "ufo": every jump press gives a small boost up, even in mid-air.
+// - "wave": flies diagonally up while jump is held, diagonally down when it's let go.
 import * as THREE from "three";
 import { createShipModel } from "./models/ship.js";
 import { createSpiderModel } from "./models/spider.js";
 import { createUfoModel } from "./models/ufo.js";
+import { createWaveModel } from "./models/wave.js";
 import { CEILING_HEIGHT } from "./config.js";
 
 export const PLAYER_COLOR = 0x33ccff;
@@ -38,15 +40,24 @@ const UFO_BOOST = 7;         // upward speed right after a tap
 const UFO_GRAVITY = 30;      // how fast it falls between taps
 const UFO_MAX_FALL = 10;     // fastest it can fall
 
+// Wave settings. It moves up or down as fast as the road moves (speed 10), so it
+// flies at 45 degrees. It slides along the ground and the ceiling.
+const WAVE_SPEED = 10;
+const WAVE_TILT = Math.PI / 4;   // 45 degrees, nose up or down
+const TRAIL_POINTS = 40;         // how many past positions the trail remembers
+const TRAIL_SECONDS = 0.5;       // how long the trail is, in seconds of flying
+const TRAIL_WIDTH = 0.12;
+
 // Hitbox half-sizes for each mode (a little smaller than the model, so hits are fair).
 const HALF_SIZE = {
   cube: { x: 0.45, y: 0.45, z: 0.45 },
   ship: { x: 0.4, y: 0.3, z: 0.75 },
   spider: { x: 0.45, y: 0.45, z: 0.45 },
-  ufo: { x: 0.6, y: 0.42, z: 0.6 }
+  ufo: { x: 0.6, y: 0.42, z: 0.6 },
+  wave: { x: 0.25, y: 0.2, z: 0.3 }   // small, like in the real thing: tight gaps are fair
 };
 // Half-height of the model, used to place its bottom (or top) exactly on a surface.
-const HALF_HEIGHT = { cube: CUBE_SIZE / 2, ship: 0.35, spider: 0.5, ufo: 0.5 };
+const HALF_HEIGHT = { cube: CUBE_SIZE / 2, ship: 0.35, spider: 0.5, ufo: 0.5, wave: 0.2 };
 
 // The cube is semi-transparent, so you can see the road through it.
 function createCubeMaterial() {
@@ -66,13 +77,52 @@ export function createPlayer(scene) {
     cube: createCubeModel(),
     ship: createShipModel(createCubeMaterial()),
     spider: createSpiderModel(COLOR),
-    ufo: createUfoModel(COLOR, createCubeMaterial())
+    ufo: createUfoModel(COLOR, createCubeMaterial()),
+    wave: createWaveModel(COLOR)
   };
 
   // "body" is what moves up and down; it holds every model and shows one at a time.
   const body = new THREE.Group();
   body.add(...Object.values(models));
   scene.add(body);
+
+  // The wave's trail: a glowing ribbon through where it has been. The player stays
+  // in place front to back while the road moves, so older points are drawn further
+  // back (toward the camera), as far as the road has moved since.
+  const trailHistory = [];   // past heights, newest first: { y, age }
+  const trailGeometry = new THREE.BufferGeometry();
+  trailGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(TRAIL_POINTS * 2 * 3), 3));
+  const trailIndex = [];
+  for (let i = 0; i < TRAIL_POINTS - 1; i++) {
+    const a = i * 2;
+    trailIndex.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+  }
+  trailGeometry.setIndex(trailIndex);
+  const trail = new THREE.Mesh(trailGeometry, new THREE.MeshBasicMaterial({
+    color: COLOR, transparent: true, opacity: 0.7, side: THREE.DoubleSide
+  }));
+  trail.frustumCulled = false;   // its shape changes every frame
+  trail.visible = false;
+  scene.add(trail);
+
+  function clearTrail() {
+    trailHistory.length = 0;
+  }
+
+  function updateTrail(dt) {
+    for (const point of trailHistory) point.age += dt;
+    trailHistory.unshift({ y: body.position.y, age: 0 });
+    while (trailHistory.length > TRAIL_POINTS) trailHistory.pop();
+
+    const positions = trailGeometry.attributes.position;
+    for (let i = 0; i < TRAIL_POINTS; i++) {
+      const point = trailHistory[Math.min(i, trailHistory.length - 1)];
+      const z = Math.min(point.age, TRAIL_SECONDS) * WAVE_SPEED;
+      positions.setXYZ(i * 2, -TRAIL_WIDTH, point.y, z);
+      positions.setXYZ(i * 2 + 1, TRAIL_WIDTH, point.y, z);
+    }
+    positions.needsUpdate = true;
+  }
 
   let mode = "cube";
   let velocityY = 0;       // current up/down speed: positive = rising, negative = falling
@@ -104,6 +154,9 @@ export function createPlayer(scene) {
     for (const [name, model] of Object.entries(models)) model.visible = name === mode;
     models.ship.rotation.x = 0;
     models.cube.rotation.x = 0;
+    models.wave.rotation.x = 0;
+    clearTrail();
+    trail.visible = mode === "wave" && body.visible;
   }
 
   function launch() {
@@ -126,6 +179,7 @@ export function createPlayer(scene) {
   // Show or hide the player (it's hidden while its pieces fly apart after a crash).
   function setVisible(visible) {
     body.visible = visible;
+    trail.visible = visible && mode === "wave";
   }
 
   // A jump from an orb: works anywhere, even in mid-air.
@@ -227,8 +281,29 @@ export function createPlayer(scene) {
     }
   }
 
+  // Wave: straight up at 45 degrees while jump is held, straight down when it's not.
+  // It slides along the ground and the ceiling (flat while sliding).
+  function updateWave(dt, groundHeight, holding) {
+    velocityY = holding ? WAVE_SPEED : -WAVE_SPEED;
+    body.position.y += velocityY * dt;
+
+    let sliding = false;
+    if (getBottom() <= groundHeight) {
+      setBottom(groundHeight);
+      sliding = !holding;
+    }
+    const top = body.position.y + HALF_HEIGHT.wave;
+    if (top >= CEILING_HEIGHT) {
+      body.position.y = CEILING_HEIGHT - HALF_HEIGHT.wave;
+      sliding = holding;
+    }
+
+    models.wave.rotation.x = sliding ? 0 : Math.sign(velocityY) * WAVE_TILT;
+    updateTrail(dt);
+  }
+
   // groundHeight: what the player can stand on right now (0 = road, higher = a raised block).
-  // holding: is jump held down (only the ship uses this).
+  // holding: is jump held down (only the ship and the wave use this).
   // hasCeiling: is there a ceiling overhead (only the spider uses this).
   // Cube: spin forward while in the air; on landing, snap to the nearest flat side.
   // (Forward is -z, so the spin is a negative turn around the x axis.)
@@ -243,6 +318,7 @@ export function createPlayer(scene) {
     if (mode === "cube") updateCube(dt, groundHeight);
     else if (mode === "ship") updateShip(dt, groundHeight, holding);
     else if (mode === "spider") updateSpider(dt, groundHeight, hasCeiling);
+    else if (mode === "wave") updateWave(dt, groundHeight, holding);
     else updateUfo(dt, groundHeight);
   }
 

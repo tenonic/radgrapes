@@ -23,7 +23,7 @@ function createRandom(seed) {
   };
 }
 
-const MODE_THEMES = { ship: "teal", spider: "green", ufo: "orange" };
+const MODE_THEMES = { ship: "teal", spider: "green", ufo: "orange", wave: "pink" };
 
 // How hard the generated level is.
 // - gap: room after a spike group at the start, [min, max]; it shrinks by "shrink" toward the end.
@@ -35,6 +35,11 @@ const MODE_THEMES = { ship: "teal", spider: "green", ufo: "orange" };
 // - stretch: how long each cube part is, [min, max], between ship, spider and UFO sections.
 // - finalRoom: no new ship/spider/UFO section starts this close to the end.
 // - cubeThemes: the colors used for the cube parts, in turn.
+// - tunnels: ship sections can have 3-gap tunnels (see tunnel() below).
+// - roomScale: multiplies all the room between obstacles (less than 1 = harder). It
+//   never goes below a safe minimum (MIN_GAP, MIN_ROOM), so the level stays possible.
+// - modes: which modes the sections between cube parts cycle through
+//   (default ship, spider, UFO; "wave" can be added).
 export const PROFILES = {
   harder: {
     gap: [14, 17], shrink: 3, singleChance: 0.6, tripleFrom: 0.5, tripleChance: 0.1,
@@ -45,13 +50,53 @@ export const PROFILES = {
     gap: [11, 14], shrink: 3, singleChance: 0.35, tripleFrom: -1, tripleChance: 0.3,
     cubeTighten: 2, modeTighten: 3, stretch: [100, 150], finalRoom: 150,
     cubeThemes: ["purple", "crimson"]
+  },
+  demon: {
+    gap: [9, 12], shrink: 1, singleChance: 0.25, tripleFrom: -1, tripleChance: 0.45,
+    cubeTighten: 3, modeTighten: 4, stretch: [80, 120], finalRoom: 150,
+    cubeThemes: ["black", "crimson"], tunnels: true
   }
 };
 
+// The ??? profile (Map 4): 1.2576 times harder than Demon. All the room is divided
+// by 1.2576, triples are 1.2576 times as common, singles 1.2576 times as rare,
+// and the cube parts are 1.2576 times shorter.
+const EXTRA = 1.2576;
+PROFILES.extreme = {
+  ...PROFILES.demon,
+  roomScale: 1 / EXTRA,
+  singleChance: PROFILES.demon.singleChance / EXTRA,
+  tripleChance: PROFILES.demon.tripleChance * EXTRA,
+  stretch: PROFILES.demon.stretch.map((n) => Math.round(n / EXTRA)),
+  cubeThemes: ["black", "crimson"],
+  modes: ["wave", "spider", "ufo"]
+};
+
+// The least room a scaled gap can have: after a spike group (MIN_GAP), and after
+// other patterns (MIN_ROOM). Less than this can't be done in time.
+const MIN_GAP = 7;
+const MIN_ROOM = 6;
+
+// A "3-gap" tunnel for the ship: spikes on the road, and spikes hanging from the
+// ceiling right above them. Only 3 units between the tips, so the ship has to fly
+// straight and level all the way through. at: where it starts. length: how long it is.
+// Returns the objects to add to the map.
+export function tunnel(at, length) {
+  const objects = [];
+  for (let i = 0; i < length; i++) {
+    objects.push({ type: "spike", at: at + i });                    // tips at height 1
+    objects.push({ type: "spike", at: at + i, onCeiling: true });   // tips at height 4
+  }
+  return objects;
+}
+
 // start: where the generated part begins. end: roughly where it should finish.
 // seed: which version of the level to build. profile: how hard it is (see PROFILES).
-// Returns { objects, length } where length is the finish line.
-export function generateMap({ start, end, seed, profile = PROFILES.harder }) {
+// shipOnly: build one long ship section instead (a ship portal at "start", ship
+// obstacles up to "end", then a cube portal), with the colors changing now and then.
+// Returns { objects, length } where length is the finish line (or, for shipOnly,
+// where the cube portal is).
+export function generateMap({ start, end, seed, profile = PROFILES.harder, shipOnly = false }) {
   const p = profile;
   const random = createRandom(seed);
   const between = (min, max) => min + Math.floor(random() * (max - min + 1));   // whole number, min to max
@@ -72,15 +117,18 @@ export function generateMap({ start, end, seed, profile = PROFILES.harder }) {
   // 0 at the start of the generated part, 1 at the end.
   const difficulty = () => Math.min((cursor - start) / (end - start), 1);
 
+  // Scale some room by the profile's roomScale, but never below "least".
+  const scale = (room, least) => Math.max(least, Math.round(room * (p.roomScale ?? 1)));
+
   // Room after a spike group: the profile's gap at first, shrinking toward the end.
   const gap = () => {
     const shrink = Math.round(p.shrink * difficulty());
-    return between(p.gap[0] - shrink, p.gap[1] - shrink);
+    return scale(between(p.gap[0] - shrink, p.gap[1] - shrink), MIN_GAP);
   };
   // Room after orb rows, pads and stairs.
-  const cubeRoom = () => between(10 - p.cubeTighten, 13 - p.cubeTighten);
-  // Room between ship, spider and UFO obstacles: "min" is the easiest (harder) value.
-  const modeRoom = (min) => between(min - p.modeTighten, min + 3 - p.modeTighten);
+  const cubeRoom = () => scale(between(10 - p.cubeTighten, 13 - p.cubeTighten), MIN_ROOM);
+  // Room between ship, spider, UFO and wave obstacles: "min" is the easiest (harder) value.
+  const modeRoom = (min) => scale(between(min - p.modeTighten, min + 3 - p.modeTighten), MIN_ROOM);
 
   // ---------- Cube patterns ----------
 
@@ -130,9 +178,15 @@ export function generateMap({ start, end, seed, profile = PROFILES.harder }) {
   // Ship: fly over pillars and spike rows, and under hanging spikes.
   function shipFeatures() {
     const count = between(6, 9);
+    const kinds = ["pillar", "roadRow", "ceilingRow", "squeeze"];
+    if (p.tunnels) kinds.push("tunnel");
     for (let i = 0; i < count; i++) {
-      const kind = pick(["pillar", "roadRow", "ceilingRow", "squeeze"]);
-      if (kind === "pillar") {
+      const kind = pick(kinds);
+      if (kind === "tunnel") {
+        const length = between(10, 20);
+        objects.push(...tunnel(cursor, length));
+        cursor += length + modeRoom(13);
+      } else if (kind === "pillar") {
         block(cursor, 3, pick([2, 3]));
         cursor += 3 + modeRoom(13);
       } else if (kind === "roadRow") {
@@ -188,7 +242,36 @@ export function generateMap({ start, end, seed, profile = PROFILES.harder }) {
     }
   }
 
-  const FEATURES = { ship: shipFeatures, spider: spiderFeatures, ufo: ufoFeatures };
+  // Wave: hold to go up, let go to go down, through rows, pillars, zigzags and tunnels.
+  function waveFeatures() {
+    const count = between(6, 9);
+    for (let i = 0; i < count; i++) {
+      const kind = pick(["roadRow", "ceilingRow", "pillar", "zigzag", "tunnel"]);
+      if (kind === "roadRow") {
+        const length = between(6, 8);
+        spikeRow(cursor, length);
+        cursor += length - 1 + modeRoom(12);
+      } else if (kind === "ceilingRow") {
+        const length = between(5, 7);
+        spikeRow(cursor, length, ceilingSpike);
+        cursor += length - 1 + modeRoom(12);
+      } else if (kind === "pillar") {
+        block(cursor, 3, 3);
+        cursor += 3 + modeRoom(13);
+      } else if (kind === "zigzag") {
+        // Under ceiling spikes, then straight up over road spikes.
+        spikeRow(cursor, 4, ceilingSpike);
+        spikeRow(cursor + 8, 4);
+        cursor += 11 + modeRoom(12);
+      } else {
+        const length = between(8, 15);
+        objects.push(...tunnel(cursor, length));
+        cursor += length + modeRoom(13);
+      }
+    }
+  }
+
+  const FEATURES = { ship: shipFeatures, spider: spiderFeatures, ufo: ufoFeatures, wave: waveFeatures };
   let cubeTheme = 0;
 
   // A portal into a mode, its features, then a portal back to the cube.
@@ -208,7 +291,22 @@ export function generateMap({ start, end, seed, profile = PROFILES.harder }) {
 
   // ---------- Build the level ----------
 
-  const modes = ["ship", "spider", "ufo"];
+  if (shipOnly) {
+    const SHIP_THEMES = ["teal", "blue"];
+    objects.push({ type: "portal", at: cursor, mode: "ship" });
+    objects.push({ type: "colors", at: cursor, theme: SHIP_THEMES[0] });
+    cursor += 12;                         // room to get used to the ship
+    let themeIndex = 1;
+    while (cursor < end - 60) {
+      shipFeatures();
+      objects.push({ type: "colors", at: cursor, theme: SHIP_THEMES[themeIndex++ % SHIP_THEMES.length] });
+    }
+    cursor = Math.max(cursor + 4, end);
+    objects.push({ type: "portal", at: cursor, mode: "cube" });
+    return { objects, length: cursor };
+  }
+
+  const modes = p.modes ?? ["ship", "spider", "ufo"];
   let modeIndex = 0;
   while (cursor < end - p.finalRoom) {
     cubeStretch(between(p.stretch[0], p.stretch[1]));

@@ -127,6 +127,14 @@
 
 .menu-level-difficulty.harder { color: #ff5555; }
 .menu-level-difficulty.insane { color: #ff44dd; }
+.menu-level-difficulty.unknown {
+  color: #fff;
+  animation: glitch 0.6s steps(2) infinite;
+}
+@keyframes glitch {
+  50% { color: #33ffee; text-shadow: 2px 0 #ff2a2a, -2px 0 #ff44dd; }
+}
+.menu-level-difficulty.demon { color: #ff2a2a; text-shadow: 0 0 10px rgba(255, 30, 30, 0.8); }
 
 .menu-level-best {
   grid-area: best;

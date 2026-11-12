@@ -1,6 +1,10 @@
 // Song 2 (Map 2): an original, fast and intense electronic song in D minor,
 // 150 beats per minute. One section is 4 bars = 6.4 seconds.
 // 16 sections = about 102 seconds; then it loops. How songs are played is in src/music.js.
+//
+// It sounds "instant" and electronic: it starts at full power (no slow intro), every
+// note starts and stops sharply, the leads are buzzy square waves, there's very little
+// echo, and the synths pump with the kick.
 
 const _ = null;                            // a rest (no new note)
 
@@ -30,8 +34,8 @@ const sections = {
       81, _, 85, _,   88, _, 85, _,  81, _, 76, _,  73, _, 76, _
     ]
   },
-  // No melody, just chords: the intro, and a short breather in the middle.
-  INTRO: { chords: [Dm, Dm, Bb, A], melody: null },
+  // No melody, just chords: a short breather in the middle.
+  CALM: { chords: [Dm, Dm, Bb, A], melody: null },
   // Choppy chord stabs instead of a melody, building up.
   BREAK: { chords: [Bb, C, Dm, Dm], melody: null }
 };
@@ -39,9 +43,7 @@ const sections = {
 // Instruments: lead, pluck, arp, stab, pad, bass, kick, snare, clap, hat, shaker, crash.
 const ALL = "lead pluck arp pad bass kick snare clap hat shaker crash";
 const arrangement = [
-  { section: "INTRO", play: "pad arp bass hat" },
-  { section: "INTRO", play: "pad arp bass kick hat shaker" },
-  { section: "A",     play: "lead pad bass kick hat shaker crash" },
+  { section: "A",     play: ALL },
   { section: "A",     play: ALL },
   { section: "B",     play: ALL },
   { section: "B",     play: ALL },
@@ -51,10 +53,24 @@ const arrangement = [
   { section: "B",     play: ALL },
   { section: "A",     play: "lead pluck stab bass kick snare clap hat shaker crash" },
   { section: "B",     play: ALL },
-  { section: "INTRO", play: "pad arp bass crash" },
+  { section: "CALM",  play: "pad arp bass kick hat crash" },
   { section: "BREAK", play: "stab arp bass kick hat shaker" },
   { section: "A",     play: ALL },
   { section: "B",     play: ALL }
 ];
 
-export default { bpm: 150, sections, arrangement };
+// The electronic sound: sharp starts and stops, square waves, little echo, pumping.
+const style = {
+  reverb: 0.04,
+  pump: true,
+  sounds: {
+    lead:  { volume: 0.06, wave: "square", detune: 8, cutoff: 9000, attack: 0.001, release: 0.03 },
+    pluck: { volume: 0.04, wave: "square", detune: 4, cutoff: 8000, attack: 0.001, release: 0.02 },
+    arp:   { volume: 0.035, wave: "square", cutoff: 6000, attack: 0.001, release: 0.02 },
+    pad:   { volume: 0.022, detune: 20, cutoff: 6000, attack: 0.005, release: 0.05 },
+    stab:  { volume: 0.04, detune: 20, cutoff: 8000, attack: 0.001, release: 0.03 },
+    growl: { volume: 0.14, cutoff: 2500, release: 0.02 }
+  }
+};
+
+export default { bpm: 150, sections, arrangement, style };

@@ -8,6 +8,7 @@
 // Objects:
 //   { type: "spike", at }          a spike on the road
 //   { type: "spike", at, onCeiling: true }   a spike hanging from the ceiling (spider sections)
+//   { type: "spike", at, height }  a spike standing on top of a raised block of that height
 //   { type: "orb", at, height }    a jump orb; height is how high its center floats
 //   { type: "pad", at, height }    a jump pad: launches the cube high, no press needed.
 //                                  height (optional) puts it on top of a raised block.
@@ -15,7 +16,7 @@
 //   { type: "portal", at, mode }   changes the player to "cube", "ship", "spider" or "ufo".
 //                                  Ship, spider and UFO sections get a ceiling, up to the next portal.
 //   { type: "colors", at, theme }  fades the sky, road, walls and blocks into a new color theme
-//                                  (purple, teal, blue, green, orange or crimson; see themes.js).
+//                                  (purple, teal, blue, green, orange, crimson or black; see themes.js).
 import { generateMap } from "./generate.js";
 import song from "../songs/song1.js";
 

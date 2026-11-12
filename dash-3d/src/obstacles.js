@@ -20,13 +20,14 @@ const spikeGeometry = new THREE.ConeGeometry(0.5, SPIKE_HEIGHT, 4).rotateY(Math.
 const spikeMaterial = new THREE.MeshStandardMaterial({ color: 0xff3366 });
 
 // onCeiling: hang it upside down from the ceiling instead of standing on the road.
-function createSpike({ onCeiling = false }) {
+// height: stand it this high up (on top of a raised block) instead of on the road.
+function createSpike({ onCeiling = false, height = 0 }) {
   const spike = new THREE.Mesh(spikeGeometry, spikeMaterial);
   if (onCeiling) {
     spike.rotation.x = Math.PI;                         // point down
     spike.position.y = CEILING_HEIGHT - SPIKE_HEIGHT / 2;
   } else {
-    spike.position.y = SPIKE_HEIGHT / 2;                // bottom of the spike sits on the road
+    spike.position.y = height + SPIKE_HEIGHT / 2;       // bottom of the spike sits on the road (or a block)
   }
   return spike;
 }

@@ -11,7 +11,8 @@ export function createScene() {
   scene.fog.color = palette.sky;
 
   // Soft light from everywhere, so nothing is completely black.
-  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambient);
 
   // A "sun" from above and slightly behind, to give the cube shading.
   const sun = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -23,5 +24,5 @@ export function createScene() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  return { scene, renderer };
+  return { scene, renderer, lights: { ambient, sun } };
 }

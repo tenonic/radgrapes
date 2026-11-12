@@ -19,6 +19,7 @@ import { createEffects } from "./effects.js";
 import { createHud } from "./hud.js";
 import { createMenu } from "./menu.js";
 import { createThemes } from "./themes.js";
+import { createLights } from "./lights.js";
 import { loadBest, saveBest } from "./save.js";
 import { touching } from "./collision.js";
 import { CRASH_PAUSE, FINISH_PAUSE } from "./config.js";
@@ -29,7 +30,7 @@ const menu = createMenu(LEVELS);
 const level = await menu.pickLevel();
 const map = { ...(await level.load()).default, name: level.name };
 
-const { scene, renderer } = createScene();
+const { scene, renderer, lights: sceneLights } = createScene();
 const camera = createCamera();
 const player = createPlayer(scene);
 const world = createWorld(scene);
@@ -43,6 +44,8 @@ const blocks = createBlocks(world.group, objectsOfType("block"));
 const portals = createPortals(world.group, objectsOfType("portal"));
 const ceilings = createCeilings(world.group, objectsOfType("portal"), map.length);
 const themes = createThemes(map.theme, objectsOfType("colors"));
+// Dim, flashing lights, only on maps that ask for them (Map 4).
+const lights = map.lights === "flashing" ? createLights(sceneLights, map.song) : null;
 const effects = createEffects(scene, camera);
 const input = createInput();
 const music = createMusic(map.song);
@@ -92,6 +95,7 @@ function restart() {
   pads.reset();
   portals.reset();
   themes.update(0);
+  lights?.update(0);
   music.start();
 }
 
@@ -180,6 +184,7 @@ function updateRun(dt, jumpPressed) {
 
   hud.setProgress(world.getDistance() / map.length);
   themes.update(world.getDistance());
+  lights?.update(world.getDistance() / map.speed);   // after the themes: it dims the sky they set
 }
 
 // The game loop: runs about 60 times per second.
