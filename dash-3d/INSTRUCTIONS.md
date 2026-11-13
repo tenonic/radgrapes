@@ -65,6 +65,8 @@ Instructions for the game, recorded in the order they were given.
 - Map 4 changed again (the user's choice): it's now its own level and its own song, not the other maps combined. It keeps the wave, the dim flashing lights, the big ship part (30% of the level) and the song that never loops.
 - Map 4 is 1.2576 times harder than Map 3: the generator's "extreme" profile divides all the room between obstacles by 1.2576 (never below a safe minimum, so it stays possible), makes triples 1.2576 times as common and singles 1.2576 times as rare, and makes cube parts 1.2576 times shorter. The generator can now build wave sections too.
 - Song 4 is now half horror, half dynamic (about 2.3 minutes, the length of the level). Horror half: eerie music-box bells, wobbly dark pads, a heartbeat kick, diminished and clashing "cluster" chords, lots of echo. Dynamic half: fast (175 beats per minute), driving and pumping. The level's "drop" (a wave portal) happens right where the song turns fast. Each song part can now have its own echo amount and arpeggio height.
+- Map 4: the wave parts are replaced with UFO parts (the generated one in the horror half, and the drop). Map 4 now has no wave; the wave mode still exists in the game for later.
+- Map 1 shortened by 55%: from 6433 to 2897 units (about 11 minutes down to about 4.8 minutes). The start and the generated layout are the same; it just ends sooner.
 - Song 3 (`src/songs/song3.js`): an original, dark electronic song in C minor at 160 beats per minute, in the same instant, electronic style as Song 2.
 - Side walls along both edges of the road, taller than the screen, scrolling with the world. They look like the road: panels in the road's two colors, lined up with the road tiles.
 

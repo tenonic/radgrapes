@@ -1,17 +1,16 @@
 // The fourth map, rated "???". A level of its own, about 1.2576 times harder than
-// Map 3 (see the "extreme" profile in generate.js). It has a new mode, the wave
-// (hold to fly diagonally up, let go to fly diagonally down), dim lights that flash
+// Map 3 (see the "extreme" profile in generate.js). It has dim lights that flash
 // to the beat (see lights.js), and a big ship part that takes up 30% of the level.
 // Same speed (10) as the others, so the jump rules stay the same.
 //
 // It follows its song (songs/song4.js), which is half horror, half dynamic
 // (1 second = 10 units of road):
 //   Horror half   0-686
-//     20-599     generated: cube, wave and spider
+//     20-597     generated: cube, UFO and spider
 //     600-686    hand-made cube run-up to the drop
 //   Dynamic half  686-1399
-//     686        the drop: a wave portal right as the fast part starts
-//     686-784    hand-made wave section
+//     686        the drop: a UFO portal right as the fast part starts
+//     686-784    hand-made UFO section
 //     784-871    generated cube
 //     900-1320   the big ship part (generated): 420 units, 30% of the level
 //     1320-1399  hand-made cube to the finish
@@ -25,7 +24,7 @@ const ceilingRow = (from, count) =>
   Array.from({ length: count }, (_, i) => ({ type: "spike", at: from + i, onCeiling: true }));
 const portal = (at, mode, theme) => [{ type: "portal", at, mode }, { type: "colors", at, theme }];
 
-// Horror half: generated cube, wave and spider parts.
+// Horror half: generated cube, UFO and spider parts.
 const horrorPart = generateMap({ start: 20, end: 600, seed: 10, profile: PROFILES.extreme });
 
 const handmade = [
@@ -36,11 +35,11 @@ const handmade = [
   ...spikes(667, 668),
 
   // The drop: the song turns fast right here, and so does the level.
-  ...portal(686, "wave", "pink"),
-  { type: "block", at: 698, length: 3, height: 3 },   // up over a pillar
-  ...ceilingRow(708, 5),                              // down under ceiling spikes
-  ...row(718, 6),                                     // up over road spikes
-  ...tunnel(732, 12),                                 // hold steady
+  ...portal(686, "ufo", "orange"),
+  { type: "block", at: 698, length: 3, height: 3 },   // tap up over a pillar
+  ...ceilingRow(708, 5),                              // drop under ceiling spikes
+  ...row(718, 6),                                     // tap over road spikes
+  ...tunnel(732, 12),                                 // small, steady taps
   ...ceilingRow(752, 4),                              // zigzag
   ...row(760, 4),
   ...portal(772, "cube", "crimson"),

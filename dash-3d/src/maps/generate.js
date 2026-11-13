@@ -58,7 +58,8 @@ export const PROFILES = {
   }
 };
 
-// The ??? profile (Map 4): 1.2576 times harder than Demon. All the room is divided
+// The ??? profile (Map 4): 1.2576 times harder than Demon. Its sections between cube
+// parts are UFO and spider. All the room is divided
 // by 1.2576, triples are 1.2576 times as common, singles 1.2576 times as rare,
 // and the cube parts are 1.2576 times shorter.
 const EXTRA = 1.2576;
@@ -69,7 +70,7 @@ PROFILES.extreme = {
   tripleChance: PROFILES.demon.tripleChance * EXTRA,
   stretch: PROFILES.demon.stretch.map((n) => Math.round(n / EXTRA)),
   cubeThemes: ["black", "crimson"],
-  modes: ["wave", "spider", "ufo"]
+  modes: ["ufo", "spider"]
 };
 
 // The least room a scaled gap can have: after a spike group (MIN_GAP), and after
