@@ -28,8 +28,10 @@ export function createMenu(levels) {
         const card = document.createElement("button");
         card.className = "menu-level";
         card.disabled = !level.load;
-        // The CSS class for the difficulty's color ("???" becomes "unknown").
-        const difficultyClass = /^\w+$/.test(level.difficulty) ? level.difficulty.toLowerCase() : "unknown";
+        // The CSS class for the difficulty's color: "Extreme Demon" becomes
+        // "extreme-demon", and "???" (no letters) becomes "unknown".
+        const difficultyClass = level.difficulty.toLowerCase().replace(/[^a-z]+/g, "-")
+          .replace(/^-|-$/g, "") || "unknown";
         card.innerHTML = `
           <span class="menu-level-number">${index + 1}</span>
           <span class="menu-level-name"></span>

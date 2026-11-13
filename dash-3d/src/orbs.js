@@ -81,5 +81,14 @@ export function createOrbs(parent, list) {
     orbs.forEach((orb) => setUsed(orb, false));
   }
 
-  return { update, findTouched, use, reset };
+  // Put every orb's normal look back (after the glitch effect has changed it).
+  function restoreLook() {
+    for (const orb of orbs) {
+      setUsed(orb, orb.used);
+      orb.halo.material.color.setHex(HALO_COLOR);
+      orb.halo.position.set(0, 0, 0);
+    }
+  }
+
+  return { update, findTouched, use, reset, restoreLook, items: orbs };
 }

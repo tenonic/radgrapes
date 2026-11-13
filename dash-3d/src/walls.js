@@ -15,8 +15,16 @@ const HEIGHT = 50;
 // The sun shines from above, so the walls (which face sideways) would look much darker
 // than the road. A bit of glow in their own color makes them look like the road.
 const GLOW = 0.25;
+// Walls further than this ahead of the player aren't drawn. That far out, the fog has
+// already turned them the exact color of the sky, so nothing changes for the eye,
+// but it lets far-away backgrounds (see background.js) show above the horizon instead
+// of being hidden behind the tall walls. (The camera is 6 units behind the player,
+// and the fog is complete 90 units from the camera.)
+const VIEW_DISTANCE = 84;
 
+// Returns the wall meshes (used by the glitch effect).
 export function createWalls(parent, length) {
+  const meshes = [];
   const panelCount = Math.ceil((length + EXTRA_BEHIND) / TILE_LENGTH);
   const geometry = new THREE.BoxGeometry(THICKNESS, HEIGHT, TILE_LENGTH);
   const place = new THREE.Object3D();   // a helper used to work out each copy's position
@@ -28,6 +36,8 @@ export function createWalls(parent, length) {
   // One instanced mesh per color: even panels in the first color, odd ones in the second.
   wallColors.forEach((color, colorIndex) => {
     const material = paletteMaterial(color, GLOW);
+    // Cut off everything further ahead than VIEW_DISTANCE (z below -VIEW_DISTANCE).
+    material.clippingPlanes = [new THREE.Plane(new THREE.Vector3(0, 0, 1), VIEW_DISTANCE)];
     const count = Math.ceil((panelCount - colorIndex) / 2) * 2;   // panels of this color, both sides
     const panels = new THREE.InstancedMesh(geometry, material, count);
 
@@ -41,5 +51,7 @@ export function createWalls(parent, length) {
       }
     }
     parent.add(panels);
+    meshes.push(panels);
   });
+  return meshes;
 }

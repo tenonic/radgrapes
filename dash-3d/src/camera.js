@@ -6,7 +6,7 @@ export function createCamera() {
     70,                                      // field of view, in degrees
     window.innerWidth / window.innerHeight,  // screen shape
     0.1,                                     // nearest distance it can see
-    200                                      // farthest distance it can see
+    320                                      // farthest distance it can see (far backgrounds)
   );
 
   camera.position.set(0, 3, 6);   // x: centered, y: above, z: behind the player

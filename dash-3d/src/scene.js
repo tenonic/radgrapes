@@ -20,6 +20,7 @@ export function createScene() {
   scene.add(sun);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.localClippingEnabled = true;   // lets the walls stop where the fog is complete
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);

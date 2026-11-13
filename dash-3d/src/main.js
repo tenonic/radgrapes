@@ -20,6 +20,8 @@ import { createHud } from "./hud.js";
 import { createMenu } from "./menu.js";
 import { createThemes } from "./themes.js";
 import { createLights } from "./lights.js";
+import { createGlitch } from "./glitch.js";
+import { createBackground } from "./background.js";
 import { loadBest, saveBest } from "./save.js";
 import { touching } from "./collision.js";
 import { CRASH_PAUSE, FINISH_PAUSE } from "./config.js";
@@ -34,8 +36,9 @@ const { scene, renderer, lights: sceneLights } = createScene();
 const camera = createCamera();
 const player = createPlayer(scene);
 const world = createWorld(scene);
-createRoad(world.group, map.length);
-createWalls(world.group, map.length);
+const road = createRoad(world.group, map.length);
+// Side walls, unless the map turns them off (Void Sovereign floats in open space).
+const walls = map.walls === false ? [] : createWalls(world.group, map.length);
 const objectsOfType = (type) => map.objects.filter((o) => o.type === type);
 const obstacles = createObstacles(world.group, objectsOfType("spike"));
 const orbs = createOrbs(world.group, objectsOfType("orb"));
@@ -46,7 +49,13 @@ const ceilings = createCeilings(world.group, objectsOfType("portal"), map.length
 const themes = createThemes(map.theme, objectsOfType("colors"));
 // Dim, flashing lights, only on maps that ask for them (Map 4).
 const lights = map.lights === "flashing" ? createLights(sceneLights, map.song) : null;
+// Glitchy spikes, portals and walls, only on maps that ask for them (Map 4).
+const glitch = map.glitch
+  ? createGlitch(world.group, { spikes: obstacles.meshes, gates: portals.gates, walls, road, orbs, pads })
+  : null;
 const effects = createEffects(scene, camera);
+// A special background, only on maps that ask for one (Void Sovereign).
+const background = map.background ? createBackground(scene, map.background) : null;
 const input = createInput();
 const music = createMusic(map.song);
 const hud = createHud();
@@ -207,6 +216,8 @@ function loop() {
   }
 
   effects.update(dt);
+  glitch?.update(dt);
+  background?.update(dt);
   orbs.update(dt);   // the orbs' and pads' glow pulses all the time, even during pauses
   pads.update(dt);
   renderer.render(scene, camera);

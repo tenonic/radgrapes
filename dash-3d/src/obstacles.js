@@ -54,5 +54,8 @@ export function createObstacles(parent, list) {
       .map(({ mesh, hitboxShrink }) => getHitbox(mesh, hitboxShrink));
   }
 
-  return { getHitboxes };
+  // Every spike's mesh (used by the glitch effect, which only changes how they look).
+  const meshes = placed.map(({ mesh }) => mesh);
+
+  return { getHitboxes, meshes };
 }

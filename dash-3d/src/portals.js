@@ -22,11 +22,13 @@ export function createPortals(parent, list) {
   // Sorted front to back, so we only ever need to watch the next one.
   const portals = [...list].sort((a, b) => a.at - b.at);
 
-  for (const { at, mode } of portals) {
+  // The gates, with their colors (used by the glitch effect).
+  const gates = portals.map(({ at, mode }) => {
     const gate = createGate(mode);
     gate.position.z = -at;
     parent.add(gate);
-  }
+    return { gate, color: COLORS[mode] };
+  });
 
   let next = 0;   // index of the next portal the player hasn't passed yet
 
@@ -45,5 +47,5 @@ export function createPortals(parent, list) {
     next = 0;
   }
 
-  return { passed, reset };
+  return { passed, reset, gates };
 }

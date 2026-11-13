@@ -67,6 +67,20 @@ Instructions for the game, recorded in the order they were given.
 - Song 4 is now half horror, half dynamic (about 2.3 minutes, the length of the level). Horror half: eerie music-box bells, wobbly dark pads, a heartbeat kick, diminished and clashing "cluster" chords, lots of echo. Dynamic half: fast (175 beats per minute), driving and pumping. The level's "drop" (a wave portal) happens right where the song turns fast. Each song part can now have its own echo amount and arpeggio height.
 - Map 4: the wave parts are replaced with UFO parts (the generated one in the horror half, and the drop). Map 4 now has no wave; the wave mode still exists in the game for later.
 - Map 1 shortened by 55%: from 6433 to 2897 units (about 11 minutes down to about 4.8 minutes). The start and the generated layout are the same; it just ends sooner.
+- Map 4: the portals, spikes and walls look glitchy (`src/glitch.js`, `glitch: true` in the map). Every now and then, for a split second, they flicker into harsh colors, jump sideways, stretch or blink out, and the spikes get a shifted ghost copy. It only changes how they look: hitboxes don't move.
+- The glitches were too bright: they now use dark, muted colors with little glow, and the ghost copy is fainter.
+- The glitch colors are now more white: white with a faint tint, still with little glow.
+- Map 4: the orbs and jump pads glitch the same way (colors and their glow; their hitboxes don't move), and the floor glitches too, but very faintly (a faint whitish shimmer and a tiny shake).
+- The walls' glitch is less faint: it glows brighter than the rest.
+- New level **Void Sovereign** (`src/maps/voidSovereign.js`), rated **Extreme Demon** (purple and red glowing label), placed right before "???" in the level list. It's 2 times harder than Map 3: the generator's "void" profile halves the room between obstacles (never below the safe minimum), doubles how often triples appear, halves singles, and halves the cube parts. About 2 minutes.
+- Void Sovereign has a new purple color theme ("void") everywhere, and a new background (`src/background.js`): purple and white stars, and far ahead a huge, slowly turning purple ring around a black hole.
+- Song 5 (`src/songs/song5.js`): an original, dark and epic electronic song in B minor at 160 beats per minute that keeps climbing to higher keys.
+- Void Sovereign's background picture changed (the purple colors stay): the throne of the void. A giant crown with glowing gems floats far ahead and slowly turns, purple crystal shards drift and spin all around, and soft purple clouds glow behind everything.
+- Song 5 is now different all the way to the end: it never loops, and no section is played in the same key twice (two new sections were added). It ends on a final note right at the finish line, so the level is now 1140 units (1 minute 54 seconds).
+- Fix: Void Sovereign's background picture couldn't be seen: the tall side walls hid it. Now the walls stop being drawn where the fog has already made them sky-colored (84 units ahead), so the crown, shards and clouds show above the horizon. The camera also sees further (320 units) so the far clouds aren't cut off. Nothing else looks different.
+- Void Sovereign has no side walls (`walls: false` in the map): the walls filled the sides of the view, so the background still didn't show. Now the road floats in the open void, with the crown, clouds and crystal shards all around it. The shards float beside, above and below the road, drifting slowly past.
+- The ceiling in ship, spider, UFO (and wave) sections is now 100% invisible, on every level. It still works the same: the ship, UFO and wave can't go above it, and the spider still runs along it.
+- Changed back: the ceilings are visible again.
 - Song 3 (`src/songs/song3.js`): an original, dark electronic song in C minor at 160 beats per minute, in the same instant, electronic style as Song 2.
 - Side walls along both edges of the road, taller than the screen, scrolling with the world. They look like the road: panels in the road's two colors, lined up with the road tiles.
 

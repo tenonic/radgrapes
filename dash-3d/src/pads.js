@@ -89,5 +89,14 @@ export function createPads(parent, list) {
     pads.forEach((pad) => setUsed(pad, false));
   }
 
-  return { update, findTouched, use, reset };
+  // Put every pad's normal look back (after the glitch effect has changed it).
+  function restoreLook() {
+    for (const pad of pads) {
+      setUsed(pad, pad.used);
+      pad.halo.material.color.setHex(HALO_COLOR);
+      pad.halo.position.set(0, 0, 0);
+    }
+  }
+
+  return { update, findTouched, use, reset, restoreLook, items: pads };
 }

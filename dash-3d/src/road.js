@@ -12,7 +12,9 @@ const TILE_WIDTH = 6;
 
 // A long map has thousands of tiles, so they're drawn as "instanced" meshes
 // (one shape drawn many times in one go), one for each of the two colors.
+// Returns the road tile meshes (used by the glitch effect).
 export function createRoad(parent, length) {
+  const meshes = [];
   const geometry = new THREE.BoxGeometry(TILE_WIDTH, 0.2, TILE_LENGTH);
   const tileCount = Math.ceil((length + EXTRA_BEHIND) / TILE_LENGTH);
   const place = new THREE.Object3D();   // a helper used to work out each tile's position
@@ -28,6 +30,7 @@ export function createRoad(parent, length) {
       tiles.setMatrixAt(i++, place.matrix);
     }
     parent.add(tiles);
+    meshes.push(tiles);
   });
 
   // Finish line: a thin white strip across the road.
@@ -37,4 +40,5 @@ export function createRoad(parent, length) {
   );
   finish.position.set(0, -0.1, -length);
   parent.add(finish);
+  return meshes;
 }

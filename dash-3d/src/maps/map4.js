@@ -59,6 +59,7 @@ export default {
   speed: 10,
   theme: "black",             // the colors at the start
   lights: "flashing",         // dim, and flashing to the beat
+  glitch: true,               // glitchy spikes, portals and walls (see glitch.js)
   song,
   objects: [...horrorPart.objects, ...handmade, ...cubePart.objects, ...bigShip.objects]
 };

@@ -40,6 +40,7 @@ const MODE_THEMES = { ship: "teal", spider: "green", ufo: "orange", wave: "pink"
 //   never goes below a safe minimum (MIN_GAP, MIN_ROOM), so the level stays possible.
 // - modes: which modes the sections between cube parts cycle through
 //   (default ship, spider, UFO; "wave" can be added).
+// - modeThemes: the colors for those sections (default MODE_THEMES).
 export const PROFILES = {
   harder: {
     gap: [14, 17], shrink: 3, singleChance: 0.6, tripleFrom: 0.5, tripleChance: 0.1,
@@ -71,6 +72,19 @@ PROFILES.extreme = {
   stretch: PROFILES.demon.stretch.map((n) => Math.round(n / EXTRA)),
   cubeThemes: ["black", "crimson"],
   modes: ["ufo", "spider"]
+};
+
+// The Extreme Demon profile (Void Sovereign): 2 times harder than Demon, the same way.
+// Most of the room hits the safe minimum below. Everything stays purple.
+const DOUBLE = 2;
+PROFILES.void = {
+  ...PROFILES.demon,
+  roomScale: 1 / DOUBLE,
+  singleChance: PROFILES.demon.singleChance / DOUBLE,
+  tripleChance: PROFILES.demon.tripleChance * DOUBLE,
+  stretch: PROFILES.demon.stretch.map((n) => Math.round(n / DOUBLE)),
+  cubeThemes: ["void"],
+  modeThemes: { ship: "void", spider: "void", ufo: "void" }
 };
 
 // The least room a scaled gap can have: after a spike group (MIN_GAP), and after
@@ -279,7 +293,7 @@ export function generateMap({ start, end, seed, profile = PROFILES.harder, shipO
   function modeSection(mode) {
     cursor += 2;
     objects.push({ type: "portal", at: cursor, mode });
-    objects.push({ type: "colors", at: cursor, theme: MODE_THEMES[mode] });
+    objects.push({ type: "colors", at: cursor, theme: (p.modeThemes ?? MODE_THEMES)[mode] });
     cursor += 12;                       // room to get used to the new mode
 
     FEATURES[mode]();
