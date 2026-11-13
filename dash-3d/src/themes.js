@@ -14,7 +14,8 @@ const THEMES = {
   crimson: { sky: 0x2e0b12, road: [0x822d3e, 0x5c1d2a], block: 0xd14f68 },
   black:  { sky: 0x050508, road: [0x34343f, 0x22222a], block: 0x5c5c70 },
   pink:   { sky: 0x2e0b26, road: [0x822d6e, 0x5c1d4e], block: 0xd14fb0 },
-  void:   { sky: 0x1c0540, road: [0x45178a, 0x2c0e5c], block: 0x8d4ff0 }
+  void:   { sky: 0x1c0540, road: [0x45178a, 0x2c0e5c], block: 0x8d4ff0 },
+  cyber:  { sky: 0x02060f, road: [0x00e5ff, 0x0090c0], block: 0xb0209a }
 };
 
 // How much road it takes to fade from one theme to the next (10 units = 1 second at speed 10).

@@ -7,6 +7,7 @@
 import * as THREE from "three";
 import { TILE_LENGTH, EXTRA_BEHIND } from "./road.js";
 import { palette, paletteMaterial } from "./palette.js";
+import { applyGrid } from "./grid.js";
 
 const ROAD_HALF_WIDTH = 3;
 const THICKNESS = 0.2;
@@ -23,7 +24,8 @@ const GLOW = 0.25;
 const VIEW_DISTANCE = 84;
 
 // Returns the wall meshes (used by the glitch effect).
-export function createWalls(parent, length) {
+// grid: give the walls the neon grid look (see grid.js).
+export function createWalls(parent, length, { grid = false } = {}) {
   const meshes = [];
   const panelCount = Math.ceil((length + EXTRA_BEHIND) / TILE_LENGTH);
   const geometry = new THREE.BoxGeometry(THICKNESS, HEIGHT, TILE_LENGTH);
@@ -36,6 +38,7 @@ export function createWalls(parent, length) {
   // One instanced mesh per color: even panels in the first color, odd ones in the second.
   wallColors.forEach((color, colorIndex) => {
     const material = paletteMaterial(color, GLOW);
+    if (grid) applyGrid(material, 1, HEIGHT / TILE_LENGTH);   // squares of 4 by 4 units
     // Cut off everything further ahead than VIEW_DISTANCE (z below -VIEW_DISTANCE).
     material.clippingPlanes = [new THREE.Plane(new THREE.Vector3(0, 0, 1), VIEW_DISTANCE)];
     const count = Math.ceil((panelCount - colorIndex) / 2) * 2;   // panels of this color, both sides

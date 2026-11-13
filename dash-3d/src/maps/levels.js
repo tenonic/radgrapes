@@ -5,6 +5,7 @@ export const LEVELS = [
   { name: "Map 1", difficulty: "Harder", load: () => import("./map1.js") },
   { name: "Map 2", difficulty: "Insane", load: () => import("./map2.js") },
   { name: "Map 3", difficulty: "Demon", load: () => import("./map3.js") },
+  { name: "Cyber Gridlock", difficulty: "Hard Demon", load: () => import("./cyberGridlock.js") },
   { name: "Void Sovereign", difficulty: "Extreme Demon", load: () => import("./voidSovereign.js") },
   { name: "Map 4", difficulty: "???", load: () => import("./map4.js") }
 ];

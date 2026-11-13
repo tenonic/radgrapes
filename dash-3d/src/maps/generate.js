@@ -41,6 +41,8 @@ const MODE_THEMES = { ship: "teal", spider: "green", ufo: "orange", wave: "pink"
 // - modes: which modes the sections between cube parts cycle through
 //   (default ship, spider, UFO; "wave" can be added).
 // - modeThemes: the colors for those sections (default MODE_THEMES).
+// - saws: add saw patterns (see saws.js): in cube parts (this often: sawChance),
+//   and floating saws in ship and UFO sections.
 export const PROFILES = {
   harder: {
     gap: [14, 17], shrink: 3, singleChance: 0.6, tripleFrom: 0.5, tripleChance: 0.1,
@@ -87,6 +89,21 @@ PROFILES.void = {
   modeThemes: { ship: "void", spider: "void", ufo: "void" }
 };
 
+// The Hard Demon profile (Cyber Gridlock): 1.5 times harder than Demon, the same way,
+// with saws. Everything is in the neon "cyber" colors.
+const HALF_MORE = 1.5;
+PROFILES.hardDemon = {
+  ...PROFILES.demon,
+  roomScale: 1 / HALF_MORE,
+  singleChance: PROFILES.demon.singleChance / HALF_MORE,
+  tripleChance: PROFILES.demon.tripleChance * HALF_MORE,
+  stretch: PROFILES.demon.stretch.map((n) => Math.round(n / HALF_MORE)),
+  cubeThemes: ["cyber"],
+  modeThemes: { ship: "cyber", spider: "cyber", ufo: "cyber" },
+  saws: true,
+  sawChance: 0.3
+};
+
 // The least room a scaled gap can have: after a spike group (MIN_GAP), and after
 // other patterns (MIN_ROOM). Less than this can't be done in time.
 const MIN_GAP = 7;
@@ -122,6 +139,7 @@ export function generateMap({ start, end, seed, profile = PROFILES.harder, shipO
   const spike = (at) => objects.push({ type: "spike", at });
   const ceilingSpike = (at) => objects.push({ type: "spike", at, onCeiling: true });
   const block = (at, length, height) => objects.push({ type: "block", at, length, height });
+  const saw = (at, height, radius) => objects.push({ type: "saw", at, height, radius });
   const spikeRow = (at, count, place = spike) => {
     for (let i = 0; i < count; i++) place(at + i);
   };
@@ -176,10 +194,34 @@ export function generateMap({ start, end, seed, profile = PROFILES.harder, shipO
     cursor += 21 + cubeRoom();
   }
 
+  // Saw patterns for the cube.
+  function sawPattern() {
+    const kind = pick(["single", "pair", "onBlock"]);
+    if (kind === "single") {
+      // A saw half-buried in the road: jump over it like a spike.
+      saw(cursor, 0, 1);
+      cursor += gap();
+    } else if (kind === "pair") {
+      // Two saws side by side: one long jump clears both.
+      saw(cursor, 0, 1);
+      saw(cursor + 2.2, 0, 1);
+      cursor += 2 + gap();
+    } else {
+      // Jump onto a low block, then over a small saw on top of it.
+      block(cursor, 10, 1);
+      saw(cursor + 6, 1, 0.8);
+      cursor += 10 + cubeRoom();
+    }
+  }
+
   // A stretch of cube patterns, mostly spike groups.
   function cubeStretch(length) {
     const stop = cursor + length;
     while (cursor < stop) {
+      if (p.saws && chance(p.sawChance)) {
+        sawPattern();
+        continue;
+      }
       const roll = random();
       if (roll < 0.66) spikeGroup();
       else if (roll < 0.75) orbRow();
@@ -195,9 +237,14 @@ export function generateMap({ start, end, seed, profile = PROFILES.harder, shipO
     const count = between(6, 9);
     const kinds = ["pillar", "roadRow", "ceilingRow", "squeeze"];
     if (p.tunnels) kinds.push("tunnel");
+    if (p.saws) kinds.push("saw");
     for (let i = 0; i < count; i++) {
       const kind = pick(kinds);
-      if (kind === "tunnel") {
+      if (kind === "saw") {
+        // A big saw floating in the middle: fly above or below it.
+        saw(cursor, 2.5, 1.3);
+        cursor += 1 + modeRoom(13);
+      } else if (kind === "tunnel") {
         const length = between(10, 20);
         objects.push(...tunnel(cursor, length));
         cursor += length + modeRoom(13);
@@ -235,7 +282,15 @@ export function generateMap({ start, end, seed, profile = PROFILES.harder, shipO
   function ufoFeatures() {
     const count = between(6, 8);
     for (let i = 0; i < count; i++) {
-      const kind = pick(["roadRow", "corridor", "pillar", "ceilingRow", "squeeze"]);
+      const kinds = ["roadRow", "corridor", "pillar", "ceilingRow", "squeeze"];
+      if (p.saws) kinds.push("saw");
+      const kind = pick(kinds);
+      if (kind === "saw") {
+        // A big saw floating in the middle: hop over it or stay under it.
+        saw(cursor, 2.5, 1.3);
+        cursor += 1 + modeRoom(13);
+        continue;
+      }
       if (kind === "roadRow") {
         spikeRow(cursor, 8);
         cursor += 7 + modeRoom(12);

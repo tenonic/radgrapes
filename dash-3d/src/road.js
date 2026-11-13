@@ -3,6 +3,7 @@
 // A distance "d" along the road is at z = -d (forward is the -z direction).
 import * as THREE from "three";
 import { palette, paletteMaterial } from "./palette.js";
+import { applyGrid } from "./grid.js";
 
 // Shared with walls.js, so the walls line up with the road.
 // (The road's colors come from the palette, so they change with the theme.)
@@ -13,7 +14,8 @@ const TILE_WIDTH = 6;
 // A long map has thousands of tiles, so they're drawn as "instanced" meshes
 // (one shape drawn many times in one go), one for each of the two colors.
 // Returns the road tile meshes (used by the glitch effect).
-export function createRoad(parent, length) {
+// grid: give the road the neon grid look (see grid.js).
+export function createRoad(parent, length, { grid = false } = {}) {
   const meshes = [];
   const geometry = new THREE.BoxGeometry(TILE_WIDTH, 0.2, TILE_LENGTH);
   const tileCount = Math.ceil((length + EXTRA_BEHIND) / TILE_LENGTH);
@@ -21,7 +23,9 @@ export function createRoad(parent, length) {
 
   palette.road.forEach((color, colorIndex) => {
     const count = Math.ceil((tileCount - colorIndex) / 2);   // tiles of this color
-    const tiles = new THREE.InstancedMesh(geometry, paletteMaterial(color), count);
+    const material = paletteMaterial(color);
+    if (grid) applyGrid(material, 1.5, 1);   // squares of 4 by 4 units
+    const tiles = new THREE.InstancedMesh(geometry, material, count);
     let i = 0;
     for (let t = colorIndex; t < tileCount; t += 2) {        // every other tile
       const startOfTile = -EXTRA_BEHIND + t * TILE_LENGTH;

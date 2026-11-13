@@ -10,6 +10,7 @@ import { createObstacles } from "./obstacles.js";
 import { createOrbs } from "./orbs.js";
 import { createPads } from "./pads.js";
 import { createBlocks } from "./blocks.js";
+import { createSaws } from "./saws.js";
 import { createPortals } from "./portals.js";
 import { createCeilings } from "./ceilings.js";
 import { createInput } from "./input.js";
@@ -36,14 +37,15 @@ const { scene, renderer, lights: sceneLights } = createScene();
 const camera = createCamera();
 const player = createPlayer(scene);
 const world = createWorld(scene);
-const road = createRoad(world.group, map.length);
+const road = createRoad(world.group, map.length, { grid: map.grid });
 // Side walls, unless the map turns them off (Void Sovereign floats in open space).
-const walls = map.walls === false ? [] : createWalls(world.group, map.length);
+const walls = map.walls === false ? [] : createWalls(world.group, map.length, { grid: map.grid });
 const objectsOfType = (type) => map.objects.filter((o) => o.type === type);
 const obstacles = createObstacles(world.group, objectsOfType("spike"));
 const orbs = createOrbs(world.group, objectsOfType("orb"));
 const pads = createPads(world.group, objectsOfType("pad"));
 const blocks = createBlocks(world.group, objectsOfType("block"));
+const saws = createSaws(world.group, objectsOfType("saw"));
 const portals = createPortals(world.group, objectsOfType("portal"));
 const ceilings = createCeilings(world.group, objectsOfType("portal"), map.length);
 const themes = createThemes(map.theme, objectsOfType("colors"));
@@ -148,10 +150,11 @@ function checkPads() {
   }
 }
 
-// A crash: touching a spike, or running into the front of a raised block.
+// A crash: touching a spike or a saw, or running into the front of a raised block.
 function playerCrashed() {
   const playerBox = player.getHitbox();
   return obstacles.getHitboxes(world.getDistance()).some((box) => touching(playerBox, box))
+    || saws.getHitboxes(world.getDistance()).some((box) => touching(playerBox, box))
     || blocks.hitFront(playerBox);
 }
 
@@ -219,6 +222,7 @@ function loop() {
   glitch?.update(dt);
   background?.update(dt);
   orbs.update(dt);   // the orbs' and pads' glow pulses all the time, even during pauses
+  saws.update(dt);   // the saws spin all the time too
   pads.update(dt);
   renderer.render(scene, camera);
   requestAnimationFrame(loop);

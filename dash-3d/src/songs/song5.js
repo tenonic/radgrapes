@@ -4,10 +4,11 @@
 // is ever played in the same key twice. It ends on a final note right at the finish line.
 // How songs are played is in src/music.js.
 //
-// It sounds vast and dark, like deep space: a huge, wide lead (7 detuned copies of
-// each note), a high music-box arpeggio, a harsh "cluster" chord, a hard kick,
-// a rolling bass and distortion. Sections come back in higher and higher keys,
-// so it keeps climbing.
+// It sounds like the void, but fast and electronic: a big echo that rings for seconds,
+// wide ghostly pads, and a harsh "cluster" chord, over driving drums (a hard kick on
+// every beat, hi-hats on every step), a fast rolling bass, a huge "supersaw" lead,
+// buzzy square-wave arpeggios, pumping and distortion. Sections come back in higher
+// and higher keys, so it keeps climbing.
 
 const _ = null;                            // a rest (no new note)
 
@@ -98,20 +99,27 @@ const arrangement = [
 ];
 
 const style = {
-  reverb: 0.15,
-  pump: true,
+  reverb: 0.25,                  // still a big echo, for the void...
+  reverbSeconds: 2.5,            // ...but tighter, so the fast parts stay sharp
+  pump: true,                    // everything pumps with the kick
   hardKick: true,
-  distortion: 0.3,
-  bassEvery: 1,
-  arpOctave: 48,
-  drums: { hat: "x.xxx.xxx.xxx.xx" },
+  distortion: 0.2,               // electronic grit
+  bassEvery: 1,                  // a fast rolling bass on every step
+  arpOctave: 48,                 // a high, fast arpeggio, like far-away stars
+  drums: {
+    kick:   "x...x...x...x...",  // driving: every beat
+    snare:  "....x.......x...",
+    clap:   "....x.......x..x",
+    hat:    "xxxxxxxxxxxxxxxx",  // hi-hats on every step
+    shaker: ".x.x.x.x.x.x.x.x"
+  },
   sounds: {
-    lead:  { volume: 0.028, detune: 30, voices: 7, cutoff: 8000, attack: 0.002, release: 0.1 },
-    pluck: { volume: 0.03, wave: "square", detune: 6, cutoff: 6000, attack: 0.001, release: 0.03 },
-    arp:   { volume: 0.03, wave: "sine", cutoff: 9000, attack: 0.002, release: 0.15 },
-    pad:   { volume: 0.016, detune: 30, voices: 5, cutoff: 3000, attack: 0.2, release: 0.8 },
-    stab:  { volume: 0.028, detune: 25, voices: 5, cutoff: 7000, attack: 0.001, release: 0.04 },
-    growl: { volume: 0.15, cutoff: 2500, release: 0.02 }
+    lead:  { volume: 0.03, detune: 28, voices: 7, cutoff: 7000, attack: 0.001, release: 0.25 },
+    pluck: { volume: 0.03, wave: "square", detune: 6, cutoff: 6000, attack: 0.001, release: 0.04 },
+    arp:   { volume: 0.028, wave: "square", detune: 5, cutoff: 7000, attack: 0.001, release: 0.08 },
+    pad:   { volume: 0.02, detune: 40, voices: 6, cutoff: 2500, attack: 0.3, release: 1.5 },
+    stab:  { volume: 0.028, detune: 30, voices: 5, cutoff: 6000, attack: 0.001, release: 0.06 },
+    growl: { volume: 0.14, cutoff: 1800, release: 0.03 }
   }
 };
 

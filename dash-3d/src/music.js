@@ -57,12 +57,16 @@ const DEFAULT_DRUMS = {
 //
 // style (optional) changes how the song (or part) sounds:
 // - reverb: how much room echo (default 0.12).
+// - reverbSeconds: how long the echo rings (default 1.2). Only the first part's counts,
+//   since the whole song shares one echo.
 // - pump: true makes the synths duck on every kick and swell back ("sidechain"),
 //   the pumping sound of dance music.
 // - sounds: changes to DEFAULT_SOUNDS, per instrument.
 // - drums: changes to DEFAULT_DRUMS, per drum.
 // - hardKick: a heavier, distorted kick with a longer, booming tail.
 // - distortion: 0 to 1, how much the synths are overdriven (a rough, gritty sound).
+// - crush: "bit-crush" the synths down to this many loudness levels (like 8), which
+//   gives the crunchy sound of old game consoles. 0 = off.
 // - bassEvery: the bass plays every this many steps (default 2; 1 = a rolling bass).
 // - arpOctave: how far above the chord the arpeggio plays, in semitones (default 36;
 //   48 = an octave higher, like a tiny music box).
@@ -86,7 +90,9 @@ function partSettings(part) {
     pump: style.pump ?? false,
     hardKick: style.hardKick ?? false,
     distortion: style.distortion ?? 0,
+    crush: style.crush ?? 0,
     reverb: style.reverb ?? REVERB_AMOUNT,
+    reverbSeconds: style.reverbSeconds ?? REVERB_SECONDS,
     arpOctave: style.arpOctave ?? 36
   };
 }
@@ -152,14 +158,17 @@ export function createMusic(song) {
   //   sounds wide and rich instead of thin and "pixelated".
   // - voices: how many copies, spread evenly between flat and sharp (default 2).
   //   Many voices make a huge "supersaw" sound.
+  // - wobble: makes the filter open and close this many times per second ("wah-wah"),
+  //   the wobble bass sound of electro and dubstep. 0 = off.
   // - cutoff: a filter removes sounds higher than this (in Hz), which softens harsh waves.
   // - attack / release: how many seconds the note takes to fade in, and to fade out.
-  function synth(hz, time, length, volume, { wave = "sawtooth", detune = 0, voices = 2, cutoff = 2000, attack = 0.01, release = 0.1 } = {}) {
+  function synth(hz, time, length, volume, { wave = "sawtooth", detune = 0, voices = 2, cutoff = 2000, attack = 0.01, release = 0.1, wobble = 0 } = {}) {
     const filter = audio.createBiquadFilter();
     const gain = audio.createGain();
     filter.type = "lowpass";
     filter.frequency.value = cutoff;
-    filter.connect(gain).connect(current.distortion ? distortionInput(current.distortion) : synthVolume);
+    const rough = current.distortion || current.crush;
+    filter.connect(gain).connect(rough ? distortionInput(current.distortion, current.crush) : synthVolume);
 
     // Volume shape: fade in, hold, then fade out after the note ends.
     gain.gain.setValueAtTime(0, time);
@@ -180,12 +189,24 @@ export function createMusic(song) {
       osc.start(time);
       osc.stop(end);
     }
+
+    // Wobble: a slow wave pushes the filter's cutoff up and down.
+    if (wobble) {
+      filter.Q.value = 6;                         // a sharper "wah"
+      const lfo = audio.createOscillator();
+      const depth = audio.createGain();
+      lfo.frequency.value = wobble;
+      depth.gain.value = cutoff * 0.9;
+      lfo.connect(depth).connect(filter.frequency);
+      lfo.start(time);
+      lfo.stop(end);
+    }
   }
 
   // The reverb: a short recording of "echo" made from fading random noise.
   // Running sounds through it makes them sound like they're playing in a room.
   function createReverb() {
-    const length = audio.sampleRate * REVERB_SECONDS;
+    const length = audio.sampleRate * TIMELINE.sections[0].settings.reverbSeconds;
     const echo = audio.createBuffer(2, length, audio.sampleRate);
     for (let channel = 0; channel < 2; channel++) {
       const data = echo.getChannelData(channel);
@@ -242,13 +263,15 @@ export function createMusic(song) {
 
   // Distortion: squashes the sound wave's peaks flat, which adds a rough, gritty edge.
   // amount: 0 (clean) to 1 (very rough).
-  function createDistortion(amount) {
+  // crush: if set, also round the wave to this many loudness levels (bit-crushing).
+  function createDistortion(amount, crush = 0) {
     const shaper = audio.createWaveShaper();
     const curve = new Float32Array(1024);
     const k = amount * 50;
     for (let i = 0; i < curve.length; i++) {
       const x = (i / (curve.length - 1)) * 2 - 1;
       curve[i] = ((1 + k) * x) / (1 + k * Math.abs(x));
+      if (crush) curve[i] = Math.round(curve[i] * crush) / crush;
     }
     shaper.curve = curve;
     return shaper;
@@ -308,15 +331,16 @@ export function createMusic(song) {
 
   // Where the synths go to be distorted: one distortion unit per amount, shared by every
   // note, then turned down a bit (distortion makes things louder), then into synthVolume.
-  function distortionInput(amount) {
-    if (!distorted[amount]) {
-      const shaper = createDistortion(amount);
+  function distortionInput(amount, crush) {
+    const key = `${amount}:${crush}`;
+    if (!distorted[key]) {
+      const shaper = createDistortion(amount, crush);
       const after = audio.createGain();
       after.gain.value = 0.6;
       shaper.connect(after).connect(synthVolume);
-      distorted[amount] = shaper;
+      distorted[key] = shaper;
     }
-    return distorted[amount];
+    return distorted[key];
   }
 
   // Play everything that happens on one step of a section.
